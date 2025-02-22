@@ -8,19 +8,6 @@ readme = "README.md"
 [tool.poetry.dependencies]
 python = "^3.13"
 fastapi = {extras = ["standard"], version = "^0.115.8"}
-langchain = "^0.3.18"
-langchain-core = "^0.3.35"
-langchain-openai = "^0.3.6"
-langchain-text-splitters = "^0.3.6"
-langgraph = "^0.2.73"
-langgraph-checkpoint = "^2.0.15"
-langgraph-sdk = "^0.1.51"
-langgraph-supervisor = "^0.0.2"
-langsmith = "^0.3.8"
-openai = "^1.63.0"
-numpy = "^2.2.3"
-google-api-python-client = "^2.161.0"
-google-auth = "^2.38.0"
 pydantic = "^2.10.6"
 
 
