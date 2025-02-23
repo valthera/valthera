@@ -15,6 +15,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+
 class LangChainNode:
     """LangChain-specific node implementation using LangGraph."""
     def __init__(self, chain_type: Optional[str] = None, model_name: Optional[str] = None):
@@ -28,6 +29,7 @@ class LangChainNode:
     async def invoke(self, state: Dict[str, Any]) -> Dict[str, Any]:
         """Override this method to implement node logic."""
         return state
+
 
 class LangChainGraph:
     """LangChain-specific graph implementation using LangGraph."""
@@ -68,6 +70,7 @@ class LangChainGraph:
         result = await app.ainvoke(initial_state)
         return result
 
+
 class ProcessingNode(LangChainNode):
     """Example node that processes input data."""
     
@@ -76,6 +79,7 @@ class ProcessingNode(LangChainNode):
         state["processed"] = True
         return state
 
+
 class FinalNode(LangChainNode):
     """Example node that finalizes the workflow."""
     
@@ -83,6 +87,7 @@ class FinalNode(LangChainNode):
         logger.info(f"Final node received state: {state}")
         state["completed"] = True
         return state
+
 
 async def main():
     logger.info("Creating new LangChain graph")
