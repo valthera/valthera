@@ -10,8 +10,8 @@ def basic_graph():
 @pytest.fixture
 def populated_graph():
     graph = LangChainGraph()
-    processor = ProcessingNode(chain_type="processor")
-    finalizer = FinalNode(chain_type="finalizer")
+    processor = ProcessingNode(id="processor", chain_type="processor")
+    finalizer = FinalNode(id="finalizer", chain_type="finalizer")
     
     graph.add_node("processor", processor)
     graph.add_node("finalizer", finalizer)
@@ -25,7 +25,7 @@ def test_graph_initialization(basic_graph):
     assert not basic_graph.entrypoint_set
 
 def test_add_node(basic_graph):
-    node = ProcessingNode()
+    node = ProcessingNode(id="test", chain_type="test_processor")
     basic_graph.add_node("test", node)
     assert "test" in basic_graph.nodes
     assert basic_graph.nodes["test"] == node
@@ -60,23 +60,20 @@ async def test_complex_graph_flow():
     graph = LangChainGraph()
     
     class NodeA(LangChainNode):
-        def __init__(self):
-            super().__init__(chain_type="node_a")
-            
         async def invoke(self, state):
             state["a"] = True
             return state
             
     class NodeB(LangChainNode):
-        def __init__(self):
-            super().__init__(chain_type="node_b")
-            
         async def invoke(self, state):
             state["b"] = True
             return state
     
-    graph.add_node("a", NodeA())
-    graph.add_node("b", NodeB())
+    node_a = NodeA(id="a", chain_type="node_a")
+    node_b = NodeB(id="b", chain_type="node_b")
+    
+    graph.add_node("a", node_a)
+    graph.add_node("b", node_b)
     graph.set_entrypoint("a")
     graph.add_edge("a", "b")
     

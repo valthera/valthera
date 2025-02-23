@@ -35,10 +35,15 @@ async def test_error_handling():
     graph = LangChainGraph()
     
     class ErrorNode(ProcessingNode):
+        """Node that raises an error for testing error handling."""
+        def __init__(self, **kwargs):
+            super().__init__(chain_type="error", **kwargs)
+            
         async def invoke(self, state):
             raise ValueError("Test error")
     
-    graph.add_node("error", ErrorNode())
+    error_node = ErrorNode(id="error")
+    graph.add_node("error", error_node)
     graph.set_entrypoint("error")
     
     with pytest.raises(ValueError, match="Test error"):
@@ -50,7 +55,12 @@ async def test_parallel_execution():
     """Test executing multiple workflows in parallel."""
     async def run_workflow():
         graph = LangChainGraph()
-        processor = ProcessingNode()
+        # Create processor with required configuration
+        processor = ProcessingNode(
+            id="processor",
+            chain_type="parallel_processor",
+            model_name="test"
+        )
         graph.add_node("processor", processor)
         graph.set_entrypoint("processor")
         return await graph.execute({"input": "test"})
@@ -64,3 +74,33 @@ async def test_parallel_execution():
     
     assert len(results) == 3
     assert all(r["processed"] for r in results)
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_state_propagation():
+    """Test that state is properly propagated through the workflow."""
+    graph = LangChainGraph()
+    
+    class StateCheckNode(ProcessingNode):
+        """Node that checks and modifies state."""
+        def __init__(self, **kwargs):
+            super().__init__(chain_type="state_check", **kwargs)
+            
+        async def invoke(self, state):
+            state["checked"] = True
+            return state
+    
+    # Create and configure nodes
+    node_a = StateCheckNode(id="node_a")
+    node_b = StateCheckNode(id="node_b")
+    
+    # Build graph
+    graph.add_node("a", node_a)
+    graph.add_node("b", node_b)
+    graph.set_entrypoint("a")
+    graph.add_edge("a", "b")
+    
+    # Execute and verify
+    result = await graph.execute({"initial": True})
+    assert result["initial"]
+    assert result["checked"]
