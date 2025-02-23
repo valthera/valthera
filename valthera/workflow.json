@@ -22,6 +22,13 @@
       "condition": null
     },
     {
+      "id": "agent3",
+      "type": "agent",
+      "agent_id": "agent3",
+      "action": null,
+      "condition": null
+    },
+    {
       "id": "decision",
       "type": "decision",
       "agent_id": null,
@@ -39,8 +46,16 @@
       "to": "agent2"
     },
     {
+      "from": "agent1",
+      "to": "agent3"
+    },
+    {
       "from": "agent2",
       "to": "decision"
+    },
+    {
+      "from": "agent3",
+      "to": "agent2"
     },
     {
       "from": "decision",

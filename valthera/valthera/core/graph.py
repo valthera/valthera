@@ -3,6 +3,10 @@ from pydantic import BaseModel
 from enum import Enum
 from valthera.core.agent import AgentResponse
 from valthera.core.prompt import Prompt
+from rich.console import Console
+from rich.table import Table
+from rich.tree import Tree
+from rich import print as rprint
 import networkx as nx
 import json
 import logging
@@ -206,6 +210,92 @@ class Graph(BaseModel):
             logger.error(f"Failed to save graph to {json_path}: {str(e)}")
             raise
 
+    def pretty_print(self):
+        """Pretty print the entire graph structure using rich."""
+        console = Console()
+        
+        # Create main tree
+        tree = Tree("🔰 Graph Structure")
+        
+        # Add nodes section
+        nodes_tree = tree.add("📍 Nodes")
+        for node_id, node in self.nodes.items():
+            node_tree = nodes_tree.add(f"[bold blue]{node_id}[/]")
+            node_tree.add(f"Type: [cyan]{node.type}[/]")
+            if node.agent_id:
+                node_tree.add(f"Agent ID: [green]{node.agent_id}[/]")
+            if node.action:
+                node_tree.add(f"Action: [yellow]{node.action}[/]")
+            if node.condition:
+                node_tree.add(f"Condition: [magenta]{node.condition}[/]")
+
+        # Add edges section
+        edges_tree = tree.add("↔️  Edges")
+        for from_node, to_nodes in self.edges.items():
+            edge_tree = edges_tree.add(f"[bold blue]{from_node}[/]")
+            for to_node in to_nodes:
+                edge_tree.add(f"→ [bold cyan]{to_node}[/]")
+
+        # Add entry/exit points
+        entry_tree = tree.add("🚪 Entry Points")
+        for entry in self.entry_points:
+            entry_tree.add(f"[bold green]{entry}[/]")
+
+        exit_tree = tree.add("🏁 Exit Points")
+        for exit_point in self.exit_points:
+            exit_tree.add(f"[bold red]{exit_point}[/]")
+
+        # Add cycles if any
+        if self.cycles:
+            cycles_tree = tree.add("🔄 Cycles")
+            for i, cycle in enumerate(self.cycles, 1):
+                cycle_str = " → ".join(cycle)
+                cycles_tree.add(f"Cycle {i}: [yellow]{cycle_str}[/]")
+
+        console.print(tree)
+
+    def print_as_table(self):
+        """Print graph information in tabular format."""
+        console = Console()
+
+        # Nodes table
+        nodes_table = Table(title="Nodes")
+        nodes_table.add_column("ID", style="bold blue")
+        nodes_table.add_column("Type", style="cyan")
+        nodes_table.add_column("Agent ID", style="green")
+        nodes_table.add_column("Action", style="yellow")
+        nodes_table.add_column("Condition", style="magenta")
+
+        for node_id, node in self.nodes.items():
+            nodes_table.add_row(
+                node_id,
+                str(node.type),
+                str(node.agent_id or ""),
+                str(node.action or ""),
+                str(node.condition or "")
+            )
+
+        # Edges table
+        edges_table = Table(title="Edges")
+        edges_table.add_column("From", style="bold blue")
+        edges_table.add_column("To", style="bold cyan")
+
+        for from_node, to_nodes in self.edges.items():
+            for to_node in to_nodes:
+                edges_table.add_row(from_node, to_node)
+
+        console.print("\n[bold]Graph Information[/]")
+        console.print(nodes_table)
+        console.print(edges_table)
+        
+        if self.cycles:
+            console.print("\n[bold red]Cycles Detected:[/]")
+            for i, cycle in enumerate(self.cycles, 1):
+                console.print(f"Cycle {i}: [yellow]{' → '.join(cycle)}[/]")
+
+        console.print(f"\n[bold green]Entry Points:[/] {', '.join(self.entry_points)}")
+        console.print(f"[bold red]Exit Points:[/] {', '.join(self.exit_points)}")
+
 # Example usage
 if __name__ == "__main__":
     # Set up logging
@@ -232,6 +322,11 @@ if __name__ == "__main__":
                 "agent_id": "agent2"
             },
             {
+                "id": "agent3",
+                "type": "agent",
+                "agent_id": "agent3"
+            },
+            {
                 "id": "decision",
                 "type": "decision"
             }
@@ -239,7 +334,9 @@ if __name__ == "__main__":
         "edges": [
             {"from": "router", "to": "agent1"},
             {"from": "agent1", "to": "agent2"},
+            {"from": "agent1", "to": "agent3"},
             {"from": "agent2", "to": "decision"},
+            {"from": "agent3", "to": "agent2"},
             {"from": "decision", "to": "router"}
         ],
         "entry_points": ["router"],
@@ -260,3 +357,10 @@ if __name__ == "__main__":
     # Load graph from JSON
     loaded_graph = Graph.from_json("workflow.json")
     assert loaded_graph.validate()
+
+    # Pretty print the graph
+    print("\n=== Tree View ===")
+    graph.pretty_print()
+    
+    print("\n=== Table View ===")
+    graph.print_as_table()
