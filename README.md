@@ -18,9 +18,9 @@ Generate, execute, and persist AI-driven workflows from natural language prompts
 5. [Usage](#usage)  
    - [Prompting a Workflow](#prompting-a-workflow)  
    - [Saving and Loading](#saving-and-loading)  
-6. [Visualization](#visualization)  
-7. [Supported Frameworks](#supported-frameworks)  
-8. [API Usage (for Developers)](#api-usage-for-developers)  
+6. [Supported Frameworks](#supported-frameworks)  
+7. [API Usage (for Developers)](#api-usage-for-developers)  
+8. [Roadmap](#roadmap)  
 9. [Contributing](#contributing)  
 10. [License](#license)  
 
@@ -52,9 +52,6 @@ Whether you're creating agent-based solutions, retrieving data from various APIs
 
 - **Persistent Storage**  
   Save generated workflows to a file. Reload them anytime for future executions.
-
-- **Interactive Graph Visualization**  
-  Visualize the entire workflow as a DAG (Directed Acyclic Graph) to understand the execution flow.
 
 - **Extensible & Modular**  
   Integrates seamlessly with popular frameworks and can be extended with custom AI agents.
@@ -119,18 +116,6 @@ valthera load my_workflow.json
 
 ---
 
-## Visualization
-
-Valthera supports graph-based visualization of your workflow. Once you have a generated workflow, run:
-
-```bash
-valthera visualize
-```
-
-This will open an interactive graph view, letting you see the nodes (agents, steps, etc.) and how they connect in the workflow DAG.
-
----
-
 ## Supported Frameworks
 
 Valthera integrates seamlessly with multiple AI agent frameworks:
@@ -157,6 +142,15 @@ engine.save(workflow, "news_summary.json")
 
 ---
 
+## Roadmap
+
+- **Graph-Based Visualization** – Interactive DAG views to understand workflow execution flow (Coming Soon)  
+- **UI Dashboard** – Web-based interface for managing and running workflows (Planned)  
+- **More AI Framework Support** – Expand compatibility with emerging AI agent frameworks  
+- **Workflow Sharing** – Easily share and collaborate on workflows  
+
+---
+
 ## Contributing
 
 We welcome contributions of all kinds—bug fixes, feature enhancements, or documentation improvements.  
@@ -169,7 +163,7 @@ We welcome contributions of all kinds—bug fixes, feature enhancements, or docu
 
 ## License
 
-This project is open-source under the [MIT License](./LICENSE) (or your license of choice). Feel free to use, modify, and distribute it as allowed.  
+This project is open-source under the [Apache 2.0 License](./LICENSE). Feel free to use, modify, and distribute it as allowed.  
 
 ---
 
