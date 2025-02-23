@@ -1,0 +1,17 @@
+{
+  "workflow": {
+    "nodes": [
+      { "id": "qa", "chain_type": "qa", "model_name": "dummy_model", "type": "agent" },
+      { "id": "processor", "chain_type": "processing", "model_name": "dummy_processor", "type": "agent" },
+      { "id": "finalizer", "chain_type": "finalizer", "model_name": "dummy_finalizer", "type": "agent" }
+    ],
+    "edges": [
+      { "from": "qa", "to": "processor" },
+      { "from": "processor", "to": "finalizer" }
+    ]
+  },
+  "entrypoint": "qa",
+  "initial_state": {
+    "question": "What is the meaning of life?"
+  }
+}
