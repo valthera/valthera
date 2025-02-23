@@ -125,6 +125,12 @@ class Graph(BaseModel):
     def validate(self) -> bool:
         logger.info("Validating graph structure")
         graph = nx.DiGraph()
+        
+        # First add all nodes
+        for node_id in self.nodes:
+            graph.add_node(node_id)
+            
+        # Then add all edges
         for from_node, to_nodes in self.edges.items():
             for to_node in to_nodes:
                 graph.add_edge(from_node, to_node)
