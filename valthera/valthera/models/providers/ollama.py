@@ -2,6 +2,7 @@ import aiohttp
 from typing import Dict, Any, Optional, AsyncGenerator
 from ..base import BaseModel, ModelProvider, ModelParameters, ModelResponse
 
+
 class OllamaModel(BaseModel):
     def __init__(self, model_name: str = "llama2", base_url: str = "http://localhost:11434"):
         super().__init__(model_name, ModelProvider.OLLAMA)

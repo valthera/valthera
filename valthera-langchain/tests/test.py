@@ -2,7 +2,8 @@ import json
 import logging
 from typing import Dict, Any
 from valthera.core.graph import BaseEdge
-from valthera_langchain.graph import LangChainNode, LangChainGraph
+from valthera_langchain.nodes import LangChainNode
+from valthera_langchain.graph import LangChainGraph
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)

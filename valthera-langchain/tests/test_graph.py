@@ -21,7 +21,7 @@ def populated_graph():
 
 def test_graph_initialization(basic_graph):
     assert len(basic_graph.nodes) == 0
-    assert not basic_graph._entrypoint_set
+    assert not basic_graph.entrypoint_set
 
 def test_add_node(basic_graph):
     node = ProcessingNode()
@@ -30,7 +30,7 @@ def test_add_node(basic_graph):
     assert basic_graph.nodes["test"] == node
 
 def test_set_entrypoint(populated_graph):
-    assert populated_graph._entrypoint_set
+    assert populated_graph.entrypoint_set
     with pytest.raises(ValueError):
         populated_graph.set_entrypoint("nonexistent")
 

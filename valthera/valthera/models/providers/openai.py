@@ -3,6 +3,7 @@ from typing import Dict, Any, Optional, AsyncGenerator
 from openai import AsyncOpenAI
 from ..base import BaseModel, ModelProvider, ModelParameters, ModelResponse
 
+
 class OpenAIModel(BaseModel):
     def __init__(self, model_name: str = "gpt-4"):
         super().__init__(model_name, ModelProvider.OPENAI)
