@@ -1,4 +1,4 @@
-name: Tests
+name: Python Tests
 
 on:
   push:
@@ -9,24 +9,27 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: [3.9, "3.10"]
+    defaults:
+      run:
+        working-directory: ./valthera-langchain
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
+    - name: Set up Python
+      uses: actions/setup-python@v4
       with:
-        python-version: ${{ matrix.python-version }}
+        python-version: '3.13'
     
     - name: Install Poetry
-      run: |
-        curl -sSL https://install.python-poetry.org | python3 -
+      uses: snok/install-poetry@v1
+      with:
+        version: latest
     
     - name: Install dependencies
-      run: poetry install --with test
+      run: |
+        poetry install --with test
     
     - name: Run tests
-      run: poetry run pytest --cov=valthera_langchain tests/
+      run: |
+        poetry run pytest
