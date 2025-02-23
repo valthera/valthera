@@ -1,0 +1,54 @@
+{
+  "nodes": [
+    {
+      "id": "router",
+      "type": "router",
+      "agent_id": null,
+      "action": null,
+      "condition": null
+    },
+    {
+      "id": "agent1",
+      "type": "agent",
+      "agent_id": "agent1",
+      "action": null,
+      "condition": null
+    },
+    {
+      "id": "agent2",
+      "type": "agent",
+      "agent_id": "agent2",
+      "action": null,
+      "condition": null
+    },
+    {
+      "id": "decision",
+      "type": "decision",
+      "agent_id": null,
+      "action": null,
+      "condition": null
+    }
+  ],
+  "edges": [
+    {
+      "from": "router",
+      "to": "agent1"
+    },
+    {
+      "from": "agent1",
+      "to": "agent2"
+    },
+    {
+      "from": "agent2",
+      "to": "decision"
+    },
+    {
+      "from": "decision",
+      "to": "router"
+    }
+  ],
+  "entry_points": [
+    "router"
+  ],
+  "exit_points": []
+}

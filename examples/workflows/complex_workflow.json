@@ -1,0 +1,17 @@
+{
+    "name": "ComplexWorkflow",
+    "steps": [
+        {
+            "name": "Initialization",
+            "action": "initialize_action"
+        },
+        {
+            "name": "Processing",
+            "action": "process_action"
+        },
+        {
+            "name": "Finalization",
+            "action": "finalize_action"
+        }
+    ]
+}

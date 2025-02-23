@@ -1,0 +1,9 @@
+{
+    "name": "SimpleWorkflow",
+    "steps": [
+        {
+            "name": "SingleStep",
+            "action": "single_step_action"
+        }
+    ]
+}

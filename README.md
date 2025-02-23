@@ -1,3 +1,116 @@
+# Valthera
+
+Valthera is a framework for building agent services with support for multi-agent orchestration, human-in-the-loop flows, and tool integration.
+
+## High-Level Overview
+
+1. **Valthera (Core)**
+   - **Purpose**: Provide a generic framework for building agent services.
+   - **Key Responsibilities**:
+     - Define core abstractions and interfaces for Agents, Tool usage, multi-agent orchestration, and human-in-the-loop flows.
+     - Provide a “workflow orchestration” engine that decides how prompts are routed to either a single agent, multiple cooperating agents, or a human reviewer.
+     - Expose base classes and contracts (e.g. Agent Base, Tool interface, etc.) that can be extended by domain-specific implementations (LangChain-based or CrewAI-based, etc.).
+     - Maintain core design patterns so that modules like `valthera-langchain` or `valthera-crewai` can reuse the same set of abstractions.
+
+2. **Valthera-LangChain**
+   - **Purpose**: An implementation of the core abstractions defined in Valthera using LangChain.
+   - **Key Responsibilities**:
+     - Implement Valthera’s agent interface using LangChain’s agent primitives (Chains, LLM wrappers, memory, etc.).
+     - Provide ready-made building blocks (Chains, Tools, Memory) that integrate seamlessly with Valthera’s base designs.
+     - Serve as a reference implementation (or “plugin”) to show how to build an agent using a 3rd-party library (LangChain).
+
+3. **Valthera-Tools**
+   - **Purpose**: A library of reusable “Tools” (e.g. data retrieval, web search, external API calls, calculators, etc.) that can be leveraged by any agent built on Valthera.
+   - **Key Responsibilities**:
+     - Each tool is a self-contained module that implements a `Tool` interface from Valthera’s core abstractions.
+     - Provide a standardized mechanism for registering and configuring new tools.
+     - Support both general-purpose and specialized tools, so any agent in Valthera or Valthera-LangChain can dynamically use them.
+
+## Installation
+
+To install the Valthera packages, run the following commands:
+
+```sh
+# Clone the repository
+git clone https://github.com/yourusername/valthera.git
+cd valthera
+
+# Install dependencies for all packages
+make install
+```
+
+## Usage
+
+Here is a sample usage of the Valthera framework:
+
+```python
+# filepath: /Users/vijayselvaraj/Development/valthera/sample_usage.py
+from valthera.core.prompt import Prompt
+from valthera.core.agent import AgentResponse
+from valthera.managers.workflow import WorkflowManager
+from valthera.utils.logging import setup_logger
+from valthera.utils.config import load_config
+
+# Setup logger
+logger = setup_logger('valthera_logger', 'valthera.log')
+
+# Load configuration
+config = load_config('config.ini')
+
+# Define a simple agent
+class SimpleAgent(Agent):
+    def handle_prompt(self, prompt: Prompt) -> AgentResponse:
+        response_text = f"Received prompt: {prompt.text}"
+        return AgentResponse(response_text=response_text)
+
+    def register_tool(self, tool: Tool) -> None:
+        pass
+
+# Initialize workflow manager and register the agent
+workflow_manager = WorkflowManager()
+simple_agent = SimpleAgent()
+workflow_manager.add_workflow('simple_workflow', [simple_agent.handle_prompt])
+
+# Create a prompt and execute the workflow
+prompt = Prompt(text="Hello, Valthera!")
+response = workflow_manager.execute_workflow('simple_workflow', prompt)
+print(response.response_text)
+```
+
+## Project Structure
+
+```plaintext
+valthera/
+├── pyproject.toml
+├── README.md
+├── LICENSE
+├── .gitignore
+├── docs/
+│   ├── index.md
+│   └── ... (additional documentation files)
+├── tests/
+│   ├── __init__.py
+│   └── test_*.py (unit tests for valthera core)
+└── valthera/
+    ├── __init__.py
+    ├── core/
+    │   ├── __init__.py
+    │   ├── agent.py         # Generic Agent interface/abstract class
+    │   ├── multi_agent.py   # MultiAgentManager (abstract or base)
+    │   ├── human_loop.py    # HumanInTheLoopManager (abstract or base)
+    │   ├── tool.py          # Base Tool interface
+    │   └── prompt.py        # Base Prompt/PromptProcessor abstractions
+    ├── managers/
+    │   ├── __init__.py
+    │   ├── workflow.py      # WorkflowEngine / Orchestration logic
+    │   └── tool_manager.py  # ToolManager (register and manage tools)
+    └── utils/
+        ├── __init__.py
+        ├── logging.py       # Logging helpers
+        └── config.py        # Central config management (env vars, etc.)
+```
+
+---
 
 ## 1. High-Level Overview
 
