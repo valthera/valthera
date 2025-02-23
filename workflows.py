@@ -2,7 +2,7 @@ from typing import List, Optional, Dict, Any
 from dataclasses import dataclass
 from langchain.agents import BaseSingleActionAgent
 from langchain.chat_models.base import BaseChatModel
-from valthera.valthera.core.graph import Graph, GraphNode, NodeType
+from valthera.valthera.core.graph_old import Graph, GraphNode, NodeType
 
 @dataclass
 class SupervisorConfig:

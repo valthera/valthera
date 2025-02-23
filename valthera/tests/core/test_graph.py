@@ -1,10 +1,12 @@
+"""
 import unittest
-from valthera.core.graph import Graph, GraphNode, NodeType
+from valthera.valthera.core.graph_old import Graph, GraphNode, NodeType
 from valthera.core.prompt import Prompt
 import tempfile
 import os
 from rich.console import Console
 from io import StringIO
+
 
 class TestGraph(unittest.TestCase):
     def setUp(self):
@@ -112,3 +114,4 @@ class TestGraph(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+"""

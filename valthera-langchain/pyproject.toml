@@ -7,9 +7,9 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.13"
-valthera = { path = "../valthera" }
-
-
+networkx = "^3.4.2"
+pydantic = "^2.10.6"
+valthera = {path = "../valthera"}
 
 [build-system]
 requires = ["poetry-core"]

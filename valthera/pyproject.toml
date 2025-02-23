@@ -4,13 +4,15 @@ version = "0.1.0"
 description = ""
 authors = ["Vijay Selvaraj <vijay.selvaraj@gmail.com>"]
 readme = "README.md"
+packages = [
+    { include = "valthera", from = "." }  # Added 'from' to ensure correct path resolution
+]
 
 [tool.poetry.dependencies]
 python = "^3.13"
 fastapi = {extras = ["standard"], version = "^0.115.8"}
 pydantic = "^2.10.6"
 networkx = "^3.4.2"
-
 
 [build-system]
 requires = ["poetry-core"]
