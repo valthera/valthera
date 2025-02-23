@@ -1,14 +1,13 @@
 [tool.poetry]
 name = "valthera-tools"
 version = "0.1.0"
-description = ""
+description = "Collection of tools for Valthera agents"
 authors = ["Vijay Selvaraj <vijay.selvaraj@gmail.com>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.13"
-valthera = { path = "../valthera" }
-
+valthera-core = {path = "../valthera-core"}
 
 [build-system]
 requires = ["poetry-core"]

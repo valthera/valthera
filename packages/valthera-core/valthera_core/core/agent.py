@@ -1,8 +1,8 @@
 from abc import ABC, abstractmethod
 from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
-from valthera.core.prompt import Prompt
-from valthera.core.tool import Tool
+from valthera_core.core.prompt import Prompt
+from valthera_core.core.tool import Tool
 
 
 class AgentResponse(BaseModel):

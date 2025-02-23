@@ -2,6 +2,7 @@ import pytest
 from typing import Dict, Any
 from valthera_langchain.nodes import LangChainNode, ProcessingNode, FinalNode
 
+@pytest.mark.asyncio
 async def test_base_langchain_node():
     node = LangChainNode(chain_type="test", model_name="test-model")
     state = {"input": "test data"}
@@ -10,6 +11,7 @@ async def test_base_langchain_node():
     assert node.chain_type == "test"
     assert node.model_name == "test-model"
 
+@pytest.mark.asyncio
 async def test_processing_node():
     node = ProcessingNode(chain_type="processor", model_name="test-model")
     state = {"input": "test data"}
@@ -17,6 +19,7 @@ async def test_processing_node():
     assert result["processed"] is True
     assert "input" in result
 
+@pytest.mark.asyncio
 async def test_final_node():
     node = FinalNode(chain_type="finalizer", model_name="test-model")
     state = {"input": "test data", "processed": True}

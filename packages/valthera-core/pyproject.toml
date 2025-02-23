@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "valthera-core"
+version = "0.1.0"
+description = "Core framework for building agent services"
+authors = ["Vijay Selvaraj <vijay.selvaraj@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.13"
+pydantic = "^2.0"
+networkx = "^3.4.2"
+
+[tool.poetry.group.test.dependencies]
+pytest = "^7.4.4"
+pytest-asyncio = "^0.23.5"
+anyio = "^4.8.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

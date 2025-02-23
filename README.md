@@ -1,6 +1,6 @@
 # Valthera
 
-A CLI tool for processing prompts.
+A framework for building agent services.
 
 ## High-Level Overview
 

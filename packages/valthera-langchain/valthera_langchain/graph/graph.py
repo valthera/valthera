@@ -1,7 +1,7 @@
 from typing import Dict, Any, Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from langgraph.graph import StateGraph
-from valthera.core.graph import BaseGraph, BaseNode
+from valthera_core.core.graph import BaseGraph, BaseNode
 from ..nodes.base import LangChainNode
 import logging
 
@@ -14,8 +14,7 @@ class LangChainGraph(BaseGraph):
     nodes: Dict[str, LangChainNode] = Field(default_factory=dict)
     entrypoint_set: bool = Field(default=False)
 
-    class Config:
-        arbitrary_types_allowed = True
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
     def __init__(self, **data):
         super().__init__(**data)

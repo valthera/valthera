@@ -1,5 +1,5 @@
-from valthera.models.providers.openai import OpenAIModel
-from valthera.models.providers.ollama import OllamaModel
+from valthera_core.models.providers.openai import OpenAIModel
+from valthera_core.models.providers.ollama import OllamaModel
 
 # Use OpenAI
 model = OpenAIModel(model_name="gpt-4")

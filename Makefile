@@ -1,5 +1,5 @@
 # Define all sub-packages
-PACKAGES = valthera valthera-langchain valthera-tools
+PACKAGES = valthera-core valthera-langchain valthera-tools
 
 # Default target (run all)
 all: install build test
@@ -8,7 +8,7 @@ all: install build test
 install:
 	@for package in $(PACKAGES); do \
 		echo "🔧 Installing $$package..."; \
-		cd $$package && poetry install && cd ..; \
+		cd packages/$$package && poetry install && cd ../..; \
 	done
 	@echo "✅ Installation complete!"
 
@@ -16,7 +16,7 @@ install:
 build:
 	@for package in $(PACKAGES); do \
 		echo "🔨 Building $$package..."; \
-		cd $$package && poetry build && cd ..; \
+		cd packages/$$package && poetry build && cd ../..; \
 	done
 	@echo "✅ Build complete!"
 
@@ -24,16 +24,16 @@ build:
 develop:
 	@for package in $(PACKAGES); do \
 		echo "🔄 Installing $$package in editable mode..."; \
-		cd $$package && poetry develop && cd ..; \
+		cd packages/$$package && poetry develop && cd ../..; \
 	done
 	@echo "✅ Development mode set up!"
 
 # Run tests for all packages (if tests/ directory exists)
 test:
 	@for package in $(PACKAGES); do \
-		if [ -d "$$package/tests" ]; then \
+		if [ -d "packages/$$package/tests" ]; then \
 			echo "🧪 Running tests for $$package..."; \
-			cd $$package && poetry run pytest && cd ..; \
+			cd packages/$$package && poetry run pytest && cd ../..; \
 		else \
 			echo "⚠️ No tests found for $$package"; \
 		fi; \
@@ -44,7 +44,7 @@ test:
 clean:
 	@for package in $(PACKAGES); do \
 		echo "🧹 Cleaning $$package..."; \
-		cd $$package && poetry cache clear --all pypi && rm -rf dist build && cd ..; \
+		cd packages/$$package && poetry cache clear --all pypi && rm -rf dist build && cd ../..; \
 	done
 	@echo "✅ Cleanup complete!"
 

@@ -1,7 +1,7 @@
 from typing import Dict, Optional, Any
 import logging
-from pydantic import BaseModel, Field
-from valthera.core.graph import BaseNode, NodeType
+from pydantic import BaseModel, Field, ConfigDict
+from valthera_core.core.graph import BaseNode, NodeType
 
 logger = logging.getLogger(__name__)
 
@@ -11,6 +11,8 @@ class LangChainNodeConfig(BaseModel):
     type: NodeType = Field(default=NodeType.AGENT, description="Type of the node")
     chain_type: Optional[str] = Field(default=None, description="Type of LangChain to use")
     model_name: Optional[str] = Field(default=None, description="Name of the model to use")
+    
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 class LangChainNode(BaseNode):
@@ -18,6 +20,8 @@ class LangChainNode(BaseNode):
     
     chain_type: Optional[str] = Field(default=None, description="Type of LangChain to use")
     model_name: Optional[str] = Field(default=None, description="Name of the model to use")
+    
+    model_config = ConfigDict(arbitrary_types_allowed=True)
     
     def __init__(self, **data):
         config = LangChainNodeConfig(**data)

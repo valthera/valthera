@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "valthera-langchain"
 version = "0.1.0"
-description = ""
+description = "LangChain integration for Valthera"
 authors = ["Vijay Selvaraj <vijay.selvaraj@gmail.com>"]
 readme = "README.md"
 
@@ -9,14 +9,18 @@ readme = "README.md"
 python = "^3.13"
 networkx = "^3.4.2"
 pydantic = "^2.10.6"
-valthera = {path = "../valthera"}
+valthera-core = {path = "../valthera-core"}
 langgraph = "^0.2.74"
 
 [tool.poetry.group.test.dependencies]
-pytest = "^7.0"
-pytest-asyncio = "^0.20.0"
-pytest-cov = "^4.0.0"
+pytest = "^7.4.4"
+pytest-asyncio = "^0.23.5"
+pytest-cov = "^4.1.0"
+anyio = "^4.8.0"
 
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.pytest.ini_options]
+asyncio_mode = "strict"
