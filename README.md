@@ -1,6 +1,6 @@
 # Valthera
 
-Valthera is a framework for building agent services with support for multi-agent orchestration, human-in-the-loop flows, and tool integration.
+A CLI tool for processing prompts.
 
 ## High-Level Overview
 
