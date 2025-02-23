@@ -1,6 +1,7 @@
 import pytest
 from valthera_langchain.graph import LangChainGraph
-from valthera_langchain.nodes import LangChainNode, ProcessingNode, FinalNode
+from valthera_langchain.nodes.base import LangChainNode
+from valthera_langchain.nodes import ProcessingNode, FinalNode
 
 @pytest.fixture
 def basic_graph():
@@ -59,11 +60,17 @@ async def test_complex_graph_flow():
     graph = LangChainGraph()
     
     class NodeA(LangChainNode):
+        def __init__(self):
+            super().__init__(chain_type="node_a")
+            
         async def invoke(self, state):
             state["a"] = True
             return state
             
     class NodeB(LangChainNode):
+        def __init__(self):
+            super().__init__(chain_type="node_b")
+            
         async def invoke(self, state):
             state["b"] = True
             return state
