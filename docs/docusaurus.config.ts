@@ -7,13 +7,13 @@ import type * as Preset from '@docusaurus/preset-classic';
 const config: Config = {
   title: 'Valthera Docs',
   tagline: 'Securing the Future',
-  favicon: 'img/favicon.ico',
+  favicon: 'img/valthera-logo-light.png',
 
   // Set the production url of your site here
   url: 'https://valthera.github.io',
   // Set the /<baseUrl>/ pathname under which your site is served
   // For GitHub Pages deployment, it is often '/<projectName>/'
-  baseUrl: '/valthera/',
+  baseUrl: '',
 
   // GitHub pages deployment config.
   organizationName: 'valthera', // Your GitHub org/user name.
@@ -31,8 +31,9 @@ const config: Config = {
   presets: [
     [
       'classic',
-      {
+      {    
         docs: {
+          routeBasePath: '/', // This makes `/docs` accessible directly from `/`
           sidebarPath: './sidebars.ts',
           editUrl:
             'https://github.com/valthera/valthera/tree/main/docs/',
@@ -62,16 +63,9 @@ const config: Config = {
       title: 'Valthera Docs',
       logo: {
         alt: 'Valthera Logo',
-        src: 'img/logo.svg',
+        src: 'img/valthera-logo-light.png',
       },
-      items: [
-        {
-          type: 'docSidebar',
-          sidebarId: 'tutorialSidebar',
-          position: 'left',
-          label: 'Docs',
-        },
-        {to: '/blog', label: 'Blog', position: 'left'},
+      items: [        
         {
           href: 'https://github.com/valthera/valthera',
           label: 'GitHub',
@@ -107,22 +101,9 @@ const config: Config = {
               href: 'https://x.com/docusaurus',
             },
           ],
-        },
-        {
-          title: 'More',
-          items: [
-            {
-              label: 'Blog',
-              to: '/blog',
-            },
-            {
-              label: 'GitHub',
-              href: 'https://github.com/valthera/valthera',
-            },
-          ],
-        },
+        },        
       ],
-      copyright: `Copyright © ${new Date().getFullYear()} Valthera, Inc. Built with Docusaurus.`,
+      copyright: `Copyright © ${new Date().getFullYear()} Valthera, Inc.`,
     },
     prism: {
       theme: prismThemes.github,
