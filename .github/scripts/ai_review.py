@@ -39,30 +39,21 @@ def get_file_content(file_path):
 def review_code(file_name, file_content):
     """Sends the code to OpenAI for AI-powered review."""
     prompt = f"""
-    You are a senior software engineer reviewing a pull request.
-    The following file was modified: {file_name}
-
-    Review this code based on:
-    1. Code structure and readability
-    2. Naming conventions
-    3. Documentation clarity
-    4. Performance improvements
-    5. Potential bugs
-    6. Testing recommendations
+    Review this code file ({file_name}) and provide a very brief summary (max 3 sentences) focusing ONLY on potential issues or improvements needed.
+    If no significant issues are found, simply state that the code looks good.
+    If issues are found, briefly explain the main problems and their potential impact.
 
     Code:
     ```
     {file_content}
     ```
-
-    Provide a structured review with bullet points.
     """
 
     try:
         response = client.chat.completions.create(
             model="gpt-4-turbo-preview",
             messages=[
-                {"role": "system", "content": "You are an expert code reviewer."},
+                {"role": "system", "content": "You are a concise code reviewer. Focus only on significant issues."},
                 {"role": "user", "content": prompt}
             ]
         )
@@ -89,7 +80,7 @@ def main():
         if content:
             review = review_code(file, content)
             if review:
-                reviews.append(f"### Review for `{file}`\n{review}")
+                reviews.append(f"### `{file}`\n{review}")
 
     if reviews:
         full_review = "\n\n".join(reviews)
