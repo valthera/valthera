@@ -1,7 +1,7 @@
 import os
-import openai
 import requests
 import base64
+from openai import OpenAI
 
 # GitHub API details
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
@@ -9,9 +9,8 @@ PR_NUMBER = os.getenv("PR_NUMBER")
 REPO = os.getenv("GITHUB_REPOSITORY")
 HEADERS = {"Authorization": f"token {GITHUB_TOKEN}"}
 
-# OpenAI API Key
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-openai.api_key = OPENAI_API_KEY
+# OpenAI client initialization
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 def get_pr_files():
     """Fetches the changed files in the PR."""
@@ -64,13 +63,15 @@ def review_code(file_name, file_content):
     Provide a structured review with bullet points.
     """
 
-    response = openai.ChatCompletion.create(
-        model="gpt-4-turbo",
-        messages=[{"role": "system", "content": "You are an expert code reviewer."},
-                  {"role": "user", "content": prompt}]
+    response = client.chat.completions.create(
+        model="gpt-4-turbo-preview",  # Updated to current model name
+        messages=[
+            {"role": "system", "content": "You are an expert code reviewer."},
+            {"role": "user", "content": prompt}
+        ]
     )
 
-    return response["choices"][0]["message"]["content"]
+    return response.choices[0].message.content
 
 def comment_on_pr(review_text):
     """Posts a comment on the PR."""
@@ -81,15 +82,19 @@ def comment_on_pr(review_text):
     if response.status_code != 201:
         print(f"Failed to post comment: {response.text}")
 
-# Main Execution
-files = get_pr_files()
-review_comments = []
+def main():
+    """Main execution function."""
+    files = get_pr_files()
+    review_comments = []
 
-for file in files:
-    content = get_file_content(file)
-    if content:
-        review = review_code(file, content)
-        review_comments.append(f"### Review for `{file}`\n{review}")
+    for file in files:
+        content = get_file_content(file)
+        if content:
+            review = review_code(file, content)
+            review_comments.append(f"### Review for `{file}`\n{review}")
 
-if review_comments:
-    comment_on_pr("\n\n".join(review_comments))
+    if review_comments:
+        comment_on_pr("\n\n".join(review_comments))
+
+if __name__ == "__main__":
+    main()
