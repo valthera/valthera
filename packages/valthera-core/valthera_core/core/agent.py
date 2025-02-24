@@ -115,7 +115,3 @@ class Agent(ABC):
             subclass.
         """
         pass
-
-
-def testing_dummy_function():
-    return "This is a dummy function for testing purposes."
