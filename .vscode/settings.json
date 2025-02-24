@@ -1,0 +1,46 @@
+{
+  "editor.formatOnSave": true,
+  "editor.tabSize": 2,
+  "files.exclude": {
+    "**/.git": true,
+    "**/.DS_Store": true
+  },
+  "[json]": {
+    "editor.wordWrap": "on",
+    "editor.wordWrapColumn": 79,
+    "editor.rulers": [79]
+  },
+  "[python]": {
+    "editor.wordWrap": "on",
+    "editor.wordWrapColumn": 79,
+    "editor.rulers": [79],
+    "editor.formatOnSave": true,
+    "python.formatting.provider": "black",
+    "python.formatting.blackArgs": ["--line-length", "79"]
+  },
+  "[javascript]": {
+    "editor.wordWrap": "on",
+    "editor.wordWrapColumn": 79,
+    "editor.rulers": [79],
+    "editor.formatOnSave": true,
+    "prettier.printWidth": 79
+  },
+  "folders": [
+    {
+      "path": "packages",
+      "settings": {
+        "editor.wordWrap": "on",
+        "editor.wordWrapColumn": 79,
+        "editor.rulers": [79]
+      }
+    },
+    {
+      "path": "valthera",
+      "settings": {
+        "editor.wordWrap": "on",
+        "editor.wordWrapColumn": 79,
+        "editor.rulers": [79]
+      }
+    }
+  ]
+}

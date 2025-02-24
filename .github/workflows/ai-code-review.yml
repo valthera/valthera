@@ -1,0 +1,24 @@
+name: AI Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  ai_review:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+      
+      - name: Fetch PR Files
+        id: changed-files
+        uses: tj-actions/changed-files@v42
+        with:
+          files: "**/*.py **/*.js **/*.ts **/*.java **/*.cpp **/*.go"
+
+      - name: Run AI Review Script
+        run: python .github/scripts/ai_review.py
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}

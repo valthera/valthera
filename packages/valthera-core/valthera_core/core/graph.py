@@ -1,8 +1,9 @@
 """
 Developer Documentation: Graph Base Classes
 
-This module defines the core structures for a directed graph framework used in `valthera_core`. 
-It provides base classes for nodes, edges, and the graph itself, supporting execution and validation.
+This module defines the core structures for a directed graph framework used in
+`valthera_core`. It provides base classes for nodes, edges, and the graph
+itself, supporting execution and validation.
 
 ## Classes
 
@@ -14,7 +15,8 @@ Defines different types of nodes in the graph.
 - `DECISION`: Represents a decision-making node.
 
 ### BaseNode (Abstract Base Class)
-Represents a node within the graph, designed to be extended for specific behaviors.
+Represents a node within the graph, designed to be extended for specific
+behaviors.
 
 #### Attributes:
 - `id` (str): Unique identifier for the node.
@@ -47,7 +49,8 @@ Defines the expected interface for graph implementations.
 - `execute(self, context: ContextT) -> ResultT`
 
 ### BaseGraph (Abstract Base Class)
-A generic implementation of a directed graph that enforces structure and execution logic.
+A generic implementation of a directed graph that enforces structure and
+execution logic.
 
 #### Attributes:
 - `nodes` (Dict[str, NodeT]): Maps node IDs to node objects.
@@ -82,11 +85,11 @@ A generic implementation of a directed graph that enforces structure and executi
 """
 
 from abc import ABC, abstractmethod
-from typing import Dict, List, Optional, Any, Set, Generic, TypeVar, Protocol, runtime_checkable
+from typing import Dict, List
+from typing import Any, Set, Generic, TypeVar, Protocol, runtime_checkable
 from pydantic import BaseModel
 from enum import Enum
 import networkx as nx
-import json
 import logging
 
 logger = logging.getLogger(__name__)
@@ -107,11 +110,13 @@ class NodeType(str, Enum):
 
 class BaseNode(BaseModel, ABC):
     """
-    Abstract base class for graph nodes, defining the minimal required attributes and behaviors.
+    Abstract base class for graph nodes, defining the minimal required
+    attributes and behaviors.
 
     Attributes:
         id (str): A unique identifier for the node.
-        type (NodeType): Specifies whether the node is an agent, router, or decision node.
+            type (NodeType): Specifies whether the node is an agent, router,
+            or decision node.
     """
 
     id: str
@@ -123,7 +128,8 @@ class BaseNode(BaseModel, ABC):
         Executes the node's logic based on the provided context.
 
         Args:
-            context (Any): The execution context containing relevant input data.
+            context (Any): The execution context containing relevant
+                input data.
 
         Returns:
             Any: The result of executing the node.
@@ -143,7 +149,8 @@ class BaseNode(BaseModel, ABC):
 
 class BaseEdge(BaseModel, ABC):
     """
-    Abstract base class for edges, defining the structure for connections between nodes.
+    Abstract base class for edges, defining the structure for connections
+    between nodes.
 
     Attributes:
         from_node (str): The ID of the originating node.
@@ -189,11 +196,13 @@ class GraphProtocol(Protocol[NodeT, EdgeT, ContextT, ResultT]):
 
 class BaseGraph(BaseModel, ABC, Generic[NodeT, EdgeT, ContextT, ResultT]):
     """
-    Base class for implementing a directed graph with execution and validation logic.
+    Base class for implementing a directed graph with execution and
+    validation logic.
 
     Attributes:
         nodes (Dict[str, NodeT]): Dictionary of node ID to node object.
-        edges (Dict[str, List[str]]): Dictionary mapping node IDs to their outgoing connections.
+        edges (Dict[str, List[str]]): Dictionary mapping node IDs to their
+        outgoing connections.
         entry_points (Set[str]): Nodes where execution starts.
         exit_points (Set[str]): Nodes where execution terminates.
     """
@@ -220,7 +229,8 @@ class BaseGraph(BaseModel, ABC, Generic[NodeT, EdgeT, ContextT, ResultT]):
 
     def validate(self) -> bool:
         """
-        Validates the overall graph structure, ensuring all nodes and edges are valid.
+        Validates the overall graph structure, ensuring all nodes and
+        edges are valid.
 
         Returns:
             bool: True if the graph is valid, otherwise False.
@@ -256,7 +266,8 @@ class BaseGraph(BaseModel, ABC, Generic[NodeT, EdgeT, ContextT, ResultT]):
         Executes the graph from entry points.
 
         Returns:
-            Dict[str, ResultT]: A dictionary mapping node IDs to execution results.
+            Dict[str, ResultT]: A dictionary mapping node IDs to
+            execution results.
         """
         if not self.validate():
             raise ValueError("Invalid graph structure")

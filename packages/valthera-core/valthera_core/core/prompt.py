@@ -1,8 +1,9 @@
 """
 Developer Documentation: Prompt Model
 
-This module defines the `Prompt` model used within the `valthera_core` framework. 
-The `Prompt` class represents a structured input provided by a user to an AI agent.
+This module defines the `Prompt` model used within the `valthera_core`
+framework. The `Prompt` class represents a structured input provided by a user
+to an AI agent.
 
 ## Classes
 
@@ -10,12 +11,15 @@ The `Prompt` class represents a structured input provided by a user to an AI age
 Represents the input query or request given to an AI agent.
 
 #### Attributes:
-- `user_id` (Optional[str]): An optional user identifier, useful for context tracking. Default is `None`.
+- `user_id` (Optional[str]): An optional user identifier, useful for context
+    tracking. Default is `None`.
 - `text` (str): The actual prompt or query provided by the user.
-- `metadata` (Optional[Dict[str, Any]]): Additional context information, such as timestamps, session data, or other relevant metadata. Default is `None`.
+- `metadata` (Optional[Dict[str, Any]]): Additional context information, such
+    as timestamps, session data, or other relevant metadata. Default is `None`.
 
 #### Configuration:
-- `allow_mutation = False`: Ensures immutability, making the model read-only after creation.
+- `allow_mutation = False`: Ensures immutability, making the model read-only
+    after creation.
 
 """
 
@@ -28,9 +32,11 @@ class Prompt(BaseModel):
     Represents the user input or query given to an AI agent.
 
     Attributes:
-        user_id (Optional[str]): A unique identifier for the user, if applicable.
+        user_id (Optional[str]): A unique identifier for the user, if
+            applicable.
         text (str): The actual input query provided by the user.
-        metadata (Optional[Dict[str, Any]]): Additional metadata, such as timestamps or session details.
+            metadata (Optional[Dict[str, Any]]): Additional metadata, such as
+            timestamps or session details.
     """
 
     user_id: Optional[str] = None

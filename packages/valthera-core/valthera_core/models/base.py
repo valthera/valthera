@@ -3,12 +3,14 @@ from enum import Enum
 from typing import Dict, Any, Optional, List
 from pydantic import BaseModel, Field
 
+
 class ModelProvider(str, Enum):
     """Supported model providers."""
     OPENAI = "openai"
     ANTHROPIC = "anthropic"
     OLLAMA = "ollama"
     LOCAL = "local"
+
 
 class ModelParameters(BaseModel):
     """Common parameters for model execution."""
@@ -20,6 +22,7 @@ class ModelParameters(BaseModel):
     stop: Optional[List[str]] = None
     metadata: Optional[Dict[str, Any]] = None
 
+
 class ModelResponse(BaseModel):
     """Standard response format for model outputs."""
     text: str
@@ -27,6 +30,7 @@ class ModelResponse(BaseModel):
     model_name: str
     provider: ModelProvider
     metadata: Optional[Dict[str, Any]] = None
+
 
 class BaseModel(ABC):
     """Abstract base class for model implementations."""
@@ -36,12 +40,20 @@ class BaseModel(ABC):
         self.provider = provider
 
     @abstractmethod
-    async def generate(self, prompt: str, params: Optional[ModelParameters] = None) -> ModelResponse:
+    async def generate(
+            self,
+            prompt: str,
+            params: Optional[ModelParameters] = None
+          ) -> ModelResponse:
         """Generate a response from the model."""
         pass
 
     @abstractmethod
-    async def generate_stream(self, prompt: str, params: Optional[ModelParameters] = None):
+    async def generate_stream(
+            self,
+            prompt: str,
+            params: Optional[ModelParameters] = None
+          ):
         """Generate a streaming response from the model."""
         pass
 

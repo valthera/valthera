@@ -162,7 +162,11 @@ class LangChainGraph(BaseGraph):
         """Get all edges in the graph."""
         return self.edges_mapping
 
-    def _execute_node(self, node_id: str, context: Dict[str, Any]) -> Dict[str, Any]:
+    def _execute_node(
+            self, 
+            node_id: str, 
+            context: Dict[str, Any]
+          ) -> Dict[str, Any]:
         """Execute a single node in the graph."""
         if node_id not in self.nodes:
             raise ValueError(f"Node {node_id} not found in graph")

@@ -4,17 +4,17 @@ from ..base import BaseModel, ModelProvider, ModelParameters, ModelResponse
 
 
 class OllamaModel(BaseModel):
-    def __init__(self, model_name: str = "llama2", 
+    def __init__(self, model_name: str = "llama2",
                  base_url: str = "http://localhost:11434"):
         super().__init__(model_name, ModelProvider.OLLAMA)
         self.base_url = base_url
 
-    async def generate(self, 
-                       prompt: str, 
+    async def generate(self,
+                       prompt: str,
                        params: Optional[ModelParameters] = None
                        ) -> ModelResponse:
         params = params or ModelParameters()
-        
+
         async with aiohttp.ClientSession() as session:
             async with session.post(
                 f"{self.base_url}/api/generate",
@@ -27,7 +27,7 @@ class OllamaModel(BaseModel):
                 }
             ) as response:
                 result = await response.json()
-                
+
                 return ModelResponse(
                     text=result["response"],
                     usage={
@@ -47,7 +47,7 @@ class OllamaModel(BaseModel):
          ) -> AsyncGenerator[str, None]:
 
         params = params or ModelParameters()
-        
+
         async with aiohttp.ClientSession() as session:
             async with session.post(
                 f"{self.base_url}/api/generate",
