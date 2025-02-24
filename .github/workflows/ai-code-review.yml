@@ -3,68 +3,26 @@ name: AI Code Review
 on:
   pull_request:
     types: [opened, synchronize]
-    paths:
-      - '**/*.py'
-      - '**/*.js'
-      - '**/*.ts'
-      - '**/*.java'
-      - '**/*.cpp'
-      - '**/*.go'
 
 permissions:
   pull-requests: write
-  contents: read
 
 jobs:
-  ai_review:
+  review:
     runs-on: ubuntu-latest
-    
-    # Add concurrency to prevent multiple simultaneous reviews
-    concurrency:
-      group: ai-review-${{ github.event.pull_request.number }}
-      cancel-in-progress: true
-
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0  # Fetch all history for better diff analysis
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-python@v4
         with:
           python-version: '3.10'
-          cache: 'pip'  # Enable pip caching
-
-      - name: Install Dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install openai requests
-
-      - name: Verify Environment
-        run: |
-          if [ -z "${{ secrets.OPENAI_API_KEY }}" ]; then
-            echo "Error: OPENAI_API_KEY is not set"
-            exit 1
-          fi
-          if [ -z "${{ github.event.pull_request.number }}" ]; then
-            echo "Error: This workflow can only run on pull requests"
-            exit 1
-          fi
-
-      - name: Run AI Review Script
+      
+      - run: pip install openai requests
+      
+      - name: Run AI Review
         run: python .github/scripts/ai_review.py
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           REPO: ${{ github.repository }}
-        continue-on-error: true  # Don't fail the workflow if the review fails
-
-      - name: Upload Review Results
-        if: always()  # Run even if previous step fails
-        uses: actions/upload-artifact@v4
-        with:
-          name: code-review-results
-          path: code_review.md
-          if-no-files-found: ignore
