@@ -20,4 +20,3 @@ slug: /
 - Run multi-agent collaborations effortlessly.
 - Generate structured AI-driven pipelines from simple descriptions.
 
-Continue to [Quick Start](quick-start) to begin using Valthera.
