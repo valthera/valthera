@@ -9,7 +9,11 @@ class OpenAIModel(BaseModel):
         super().__init__(model_name, ModelProvider.OPENAI)
         self.client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-    async def generate(self, prompt: str, params: Optional[ModelParameters] = None) -> ModelResponse:
+    async def generate(
+            self, 
+            prompt: str, 
+            params: Optional[ModelParameters] = None
+            ) -> ModelResponse:
         params = params or ModelParameters()
         
         response = await self.client.chat.completions.create(
@@ -31,9 +35,13 @@ class OpenAIModel(BaseModel):
             metadata=params.metadata
         )
 
-    async def generate_stream(self, prompt: str, params: Optional[ModelParameters] = None) -> AsyncGenerator[str, None]:
+    async def generate_stream(
+            self, 
+            prompt: str, 
+            params: Optional[ModelParameters] = None
+         ) -> AsyncGenerator[str, None]:
         params = params or ModelParameters()
-        
+
         stream = await self.client.chat.completions.create(
             model=self.model_name,
             messages=[{"role": "user", "content": prompt}],

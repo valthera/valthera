@@ -4,11 +4,15 @@ from ..base import BaseModel, ModelProvider, ModelParameters, ModelResponse
 
 
 class OllamaModel(BaseModel):
-    def __init__(self, model_name: str = "llama2", base_url: str = "http://localhost:11434"):
+    def __init__(self, model_name: str = "llama2", 
+                 base_url: str = "http://localhost:11434"):
         super().__init__(model_name, ModelProvider.OLLAMA)
         self.base_url = base_url
 
-    async def generate(self, prompt: str, params: Optional[ModelParameters] = None) -> ModelResponse:
+    async def generate(self, 
+                       prompt: str, 
+                       params: Optional[ModelParameters] = None
+                       ) -> ModelResponse:
         params = params or ModelParameters()
         
         async with aiohttp.ClientSession() as session:
@@ -36,7 +40,12 @@ class OllamaModel(BaseModel):
                     metadata=params.metadata
                 )
 
-    async def generate_stream(self, prompt: str, params: Optional[ModelParameters] = None) -> AsyncGenerator[str, None]:
+    async def generate_stream(
+            self,
+            prompt: str,
+            params: Optional[ModelParameters] = None
+         ) -> AsyncGenerator[str, None]:
+
         params = params or ModelParameters()
         
         async with aiohttp.ClientSession() as session:
