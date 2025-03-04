@@ -47,7 +47,14 @@ class CustomDataSource(BaseConnector):
 
 
 class ValtheraTool(BaseTool):
-    """LangChain tool for Valthera's behavior-driven AI."""
+    """
+    LangChain tool for Valthera's behavior-driven AI.
+
+    ValtheraTool evaluates a user's motivation and ability for a given behavior using aggregated data
+    (HubSpot, PostHog, Snowflake, etc.), calculates behavior readiness, and generates personalized
+    triggers when conditions are met. It helps optimize user engagement by determining the right time
+    and message to prompt action.
+    """
     
     name: str = "valthera_tool"
     description: str = "Evaluates user readiness for a behavior and generates personalized triggers."
