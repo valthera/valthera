@@ -5,13 +5,11 @@ on:
     branches: ["main"]
   workflow_dispatch:
 
-# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
 permissions:
   contents: read
   pages: write
   id-token: write
 
-# Allow only one concurrent deployment
 concurrency:
   group: "pages"
   cancel-in-progress: true
@@ -28,8 +26,8 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 18
-          cache: 'npm'
-          cache-dependency-path: '**/package-lock.json'  
+          cache: 'pnpm'
+          cache-dependency-path: '**/pnpm-lock.yaml'
           
       - name: Setup Pages
         uses: actions/configure-pages@v4
@@ -37,15 +35,10 @@ jobs:
       - name: Install dependencies
         run: |
           cd web
-          # Ensure package-lock.json exists for caching
-          if [ ! -f package-lock.json ]; then
-            npm install
-          else
-            npm ci
-          fi
+          pnpm install
 
       - name: Build
-        run: cd web && npm run build
+        run: cd web && pnpm run build
         
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
@@ -53,12 +46,12 @@ jobs:
           path: ./web/dist
 
   deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     name: Deploy
     needs: build
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
