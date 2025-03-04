@@ -13,11 +13,12 @@ class ValtheraScorer:
         - ability_config: List of scoring rules for ability.
         """
         self.motivation_config = motivation_config
-        self.ability_config = ability_config
+        self.ability_config = ability_config        
 
     def score(self, user_context: UserContext, behavior: Behavior) -> ValtheraScores:
         motivation = self._calculate_score(user_context, self.motivation_config)
         ability = self._calculate_score(user_context, self.ability_config, behavior)
+                
         return ValtheraScores(motivation=motivation, ability=ability)
 
     def _calculate_score(self, user_context: UserContext, config: List[Dict[str, Any]], behavior: Behavior = None) -> float:

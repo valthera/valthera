@@ -76,7 +76,7 @@ class ValtheraTool(BaseTool):
         
         self._reasoning_engine = ReasoningEngine(
             llm=ChatOpenAI(
-                model_name="gpt-4-turbo",
+                model_name="gpt-4o",
                 temperature=0.0,
                 openai_api_key=os.environ.get("OPENAI_API_KEY")
             )
@@ -84,7 +84,7 @@ class ValtheraTool(BaseTool):
 
         self._trigger_generator = TriggerGenerator(
             llm=ChatOpenAI(
-                model_name="gpt-4-turbo",
+                model_name="gpt-4o",
                 temperature=0.7,
                 openai_api_key=os.environ.get("OPENAI_API_KEY")
             )
