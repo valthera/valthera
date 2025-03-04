@@ -29,7 +29,7 @@ class ValtheraAgent:
         user_context = self.data_aggregator.build_user_context(user)
         scores = self.bmat_scorer.score(user_context, behavior)
         decision = self.reasoning_engine.decide(user_context, behavior, scores)
-
+                
         print(decision)
         if decision["action"] == "trigger":
             trigger = self.trigger_generator.generate_trigger(
