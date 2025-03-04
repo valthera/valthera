@@ -106,3 +106,30 @@ class ValtheraTool(BaseTool):
         if recommendation:
             return f"Trigger Message: {recommendation.trigger_message}, Channel: {recommendation.channel}, Confidence: {recommendation.confidence}"
         return "No trigger recommended (suggested action might be to improve motivation or ability)."
+
+
+class CustomDataSource:
+    """
+    A class for representing custom data sources for Valthera tools.
+    
+    This class allows users to define and configure custom data sources
+    that can be used with Valthera tools for various operations.
+    """
+    
+    def __init__(self, name: str, config: dict = None):
+        """
+        Initialize a custom data source.
+        
+        Args:
+            name: Name of the custom data source
+            config: Configuration dictionary for the data source
+        """
+        self.name = name
+        self.config = config or {}
+    
+    def get_config(self) -> dict:
+        """Return the configuration for this data source"""
+        return self.config
+    
+    def __repr__(self) -> str:
+        return f"CustomDataSource(name='{self.name}')"

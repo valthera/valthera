@@ -33,6 +33,13 @@ ability_config = [
     {"key": "behavior_complexity", "weight": 0.40, "transform": lambda x: 1 - (min(x, 5) / 5.0)}
 ]
 
+decision_rules = [
+        {"condition": "motivation >= 0.75 and ability >= 0.75", "action": "trigger", "description": "moderate ability is acceptable"},
+        {"condition": "motivation < 0.75", "action": "improve_motivation", "description": "increase motivation"},
+        {"condition": "ability < 0.75", "action": "improve_ability", "description": "increase ability"},
+        {"condition": "otherwise", "action": "defer", "description": "not ready yet"},
+    ]
+
 # ✅ Initialize Scorer
 scorer = ValtheraScorer(motivation_config, ability_config)
 
@@ -42,7 +49,8 @@ reasoning_engine = ReasoningEngine(
         model_name="gpt-4-turbo",
         temperature=0.0,
         openai_api_key=os.environ.get("OPENAI_API_KEY")
-    )
+    ),
+    decision_rules=decision_rules
 )
 
 # ✅ Initialize Trigger Generator
