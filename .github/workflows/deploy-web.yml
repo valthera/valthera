@@ -29,13 +29,20 @@ jobs:
         with:
           node-version: 18
           cache: 'npm'
-          cache-dependency-path: './web/package-lock.json'
+          cache-dependency-path: 'web/package-lock.json'
           
       - name: Setup Pages
         uses: actions/configure-pages@v4
 
       - name: Install dependencies
-        run: cd web && npm ci
+        run: |
+          cd web
+          # Ensure package-lock.json exists for caching
+          if [ ! -f package-lock.json ]; then
+            npm install
+          else
+            npm ci
+          fi
 
       - name: Build
         run: cd web && npm run build
