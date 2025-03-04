@@ -1,0 +1,29 @@
+[flake8]
+# Set the maximum line length to 88 (or customize it)
+max-line-length = 88
+
+# Ignore specific warnings/errors (customize as needed)
+ignore = E203, E266, E501, W503, F401
+
+# Exclude specific directories (customize as needed)
+exclude = 
+    .git,
+    __pycache__,
+    build,
+    dist,
+    venv,
+    .venv,
+    .tox,
+    .mypy_cache
+
+# Enable warnings for unknown escape sequences
+enable-extensions = G
+
+# Show source of each error
+show-source = True
+
+# Set the complexity limit for functions/methods
+max-complexity = 10
+
+# Format output for better readability
+format = default

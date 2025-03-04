@@ -1,0 +1,61 @@
+name: Run Tests
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master, develop ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [ '3.12' ]
+
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+        
+    - name: Install Poetry
+      run: |
+        curl -sSL https://install.python-poetry.org | python3 -
+        echo "$HOME/.poetry/bin" >> $GITHUB_PATH
+
+    - name: Install dependencies with Poetry
+      run: |
+        cd valthera
+        poetry env use python3.12 || echo "Using system Python"
+        poetry install --no-root  
+        echo "Using Poetry env: $(poetry env info --path)"
+
+    - name: Ensure pytest is installed
+      run: |
+        cd valthera
+        poetry run pip install pytest pytest-cov
+
+    - name: Lint with flake8
+      run: |
+        cd valthera
+        poetry run pip install flake8
+        poetry run flake8 valthera --count --select=E9,F63,F7,F82 --show-source --statistics
+        poetry run flake8 valthera --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+
+    - name: Test with pytest
+      run: |
+        cd valthera
+        poetry run pytest --cov=valthera --cov-report=xml
+
+    - name: Verify Coverage File
+      run: |
+        ls -lah valthera/coverage.xml
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: valthera/coverage.xml
+        fail_ci_if_error: false

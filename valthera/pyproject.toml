@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "valthera"
+version = "0.1.2"
+description = ""
+authors = ["Vijay Selvaraj <vijay.selvaraj@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = ">=3.9,<4.0"
+hubspot-api-client = "^11.1.0"
+langchain-community = "^0.3.18"
+langchain-core = "^0.3.40"
+openai = "^1.65.2"
+
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
