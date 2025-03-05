@@ -1,0 +1,16 @@
+[tool.poetry]
+name = "synthetic-valthera"
+version = "0.1.0"
+description = ""
+authors = ["Vijay Selvaraj <vijay.selvaraj@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.13"
+hubspot-api-client = "^11.1.0"
+faker = "^36.1.1"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
