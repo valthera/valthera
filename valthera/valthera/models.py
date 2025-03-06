@@ -49,6 +49,7 @@ class ValtheraScores:
     """
     motivation: float
     ability: float
+    trigger: float
     # Optionally store intermediate signals or reason
     notes: Optional[str] = None
 
