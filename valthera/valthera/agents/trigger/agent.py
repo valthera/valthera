@@ -1,9 +1,9 @@
 from typing import Optional
 from valthera.models import User, Behavior, TriggerRecommendation
-from valthera.aggregator import DataAggregator
-from valthera.reasoning_engine import ReasoningEngine
-from valthera.trigger_generator import TriggerGenerator
-from valthera.scorer import ValtheraScorer
+from valthera.valthera.utils.aggregator import DataAggregator
+from valthera.agents.trigger.reasoning_engine import ReasoningEngine
+from valthera.agents.trigger.trigger_generator import TriggerGenerator
+from valthera.agents.trigger.scorer import ValtheraScorer
 
 
 class ValtheraAgent:

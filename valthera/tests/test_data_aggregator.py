@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import Mock
 from valthera.models import User
-from valthera.aggregator import DataAggregator
+from valthera.valthera.utils.aggregator import DataAggregator
 
 
 class TestDataAggregator(unittest.TestCase):
