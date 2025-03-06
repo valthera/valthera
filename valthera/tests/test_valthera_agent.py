@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import Mock
 from valthera.models import User, Behavior, TriggerRecommendation
-from valthera.agents.behavioral.trigger.agent import ValtheraAgent
+from valthera.agents.behavioral.fogg_model.agent import ValtheraAgent
 
 
 class TestValtheraAgent(unittest.TestCase):
