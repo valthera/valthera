@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import Mock
 from valthera.models import Behavior, ValtheraScores, UserContext
-from valthera.agents.trigger.trigger_generator import TriggerGenerator
+from valthera.agents.behavioral.trigger.trigger_generator import TriggerGenerator
 
 
 class TestTriggerGenerator(unittest.TestCase):

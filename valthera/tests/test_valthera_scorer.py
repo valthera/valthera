@@ -1,6 +1,6 @@
 import unittest
 from valthera.models import Behavior, UserContext
-from valthera.agents.trigger.scorer import ValtheraScorer
+from valthera.agents.behavioral.trigger.scorer import ValtheraScorer
 
 
 class TestValtheraScorer(unittest.TestCase):

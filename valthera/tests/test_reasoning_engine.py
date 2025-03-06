@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import Mock
 from valthera.models import Behavior, ValtheraScores, UserContext
-from valthera.agents.trigger.reasoning_engine import ReasoningEngine
+from valthera.agents.behavioral.trigger.reasoning_engine import ReasoningEngine
 
 
 class TestReasoningEngine(unittest.TestCase):
