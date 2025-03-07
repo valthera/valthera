@@ -32,7 +32,7 @@ class UserContext:
     for a given user, relevant to B=MAT scoring.
     """
     user_id: str
-    connector_data: Dict[str, Dict] = field(default_factory=dict)
+    connector_data: Dict[str, int] = field(default_factory=dict)
 
     # Example derived fields
     # Could also be done in a 'feature engineering' step

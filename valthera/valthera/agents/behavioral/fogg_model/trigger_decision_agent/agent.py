@@ -29,7 +29,10 @@ class TriggerDecisionAgent:
 
     def run(self,
             user_context: UserContext,
-            behavior: Behavior) -> Optional[TriggerRecommendation]:
+            behavior: Behavior) -> Optional[TriggerRecommendation]:                
+        print("=== Running TriggerDecisionAgent ===")
+        print(f"User: {user_context}")
+        print(f"Behavior: {behavior.name}")        
         scores = self.scorer.score(user_context, behavior)
         decision = self.reasoning_engine.decide(
                 user_context,
