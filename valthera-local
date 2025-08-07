@@ -428,9 +428,18 @@ setup_sqs_queues() {
 setup_cognito() {
     print_subheader "Setting up Cognito (Local)"
     if [ -f "./scripts/setup-local-cognito.sh" ]; then
-        ./scripts/setup-local-cognito.sh
+        print_info "Running Cognito setup script..."
+        if ./scripts/setup-local-cognito.sh; then
+            print_success "Cognito setup completed successfully"
+        else
+            print_error "Cognito setup failed. Check the logs above for errors."
+            print_info "You can try running the setup manually: ./scripts/setup-local-cognito.sh"
+            return 1
+        fi
     else
-        print_warning "Cognito setup script not found. Run manually: ./scripts/setup-local-cognito.sh"
+        print_error "Cognito setup script not found at ./scripts/setup-local-cognito.sh"
+        print_info "Please ensure the script exists and is executable."
+        return 1
     fi
 }
 
@@ -517,9 +526,30 @@ cmd_start() {
     setup_datasources
     
     # Setup Cognito if container is running
+    print_info "Checking Cognito container status..."
     if [ "$(get_container_status valthera-cognito-local)" = "running" ]; then
+        print_info "Cognito container is running, waiting for service to be ready..."
         wait_for_service "http://localhost:9239" "Cognito-Local"
         setup_cognito
+    else
+        print_warning "Cognito container is not running. Waiting for it to start..."
+        # Wait a bit more for the container to start
+        local cognito_attempts=0
+        while [ $cognito_attempts -lt 15 ] && [ "$(get_container_status valthera-cognito-local)" != "running" ]; do
+            sleep 2
+            cognito_attempts=$((cognito_attempts + 1))
+            echo -n "."
+        done
+        echo ""
+        
+        if [ "$(get_container_status valthera-cognito-local)" = "running" ]; then
+            print_success "Cognito container is now running"
+            wait_for_service "http://localhost:9239" "Cognito-Local"
+            setup_cognito
+        else
+            print_error "Cognito container failed to start. Check docker-compose logs."
+            print_info "You can try: docker-compose logs cognito-local"
+        fi
     fi
     
     print_success "All AWS services started successfully!"
@@ -1157,7 +1187,10 @@ cmd_help() {
     echo -e "    ${GREEN}urls${NC}         Show all service URLs and endpoints"
     echo -e "    ${GREEN}test${NC}         Test connectivity to all services"
     echo -e "    ${GREEN}sqs${NC} <cmd>     SQS debug commands (send/stats/peek/web)"
-    echo -e "    ${GREEN}debug${NC} <cmd>   Debug commands (video-processor/sqs-test)"    echo -e "    ${GREEN}codes${NC}        Watch for Cognito verification codes"
+    echo -e "    ${GREEN}debug${NC} <cmd>   Debug commands (video-processor/sqs-test)"
+    echo -e "    ${GREEN}codes${NC}        Watch for Cognito verification codes"
+    echo -e "    ${GREEN}setup-cognito${NC} Manually setup Cognito (if auto-setup fails)"
+    echo -e "    ${GREEN}test-cognito${NC}  Test Cognito setup and configuration"
     echo -e "    ${GREEN}clean${NC}        Clean up all resources (tables, buckets, queues)"
     echo -e "    ${GREEN}help${NC}         Show this help message"
     echo ""
@@ -1168,6 +1201,7 @@ cmd_help() {
     echo "    ./valthera-local apps restart       # Restart just React + SAM API"
     echo "    ./valthera-local apps logs react    # Show React app logs"
     echo "    ./valthera-local status             # Check what's running"
+    echo "    ./valthera-local setup-cognito      # Manually setup Cognito"
     echo "    ./valthera-local destroy            # Nuclear option - remove everything"
     echo ""
     echo -e "${BOLD}AWS SERVICES:${NC}"
@@ -1542,6 +1576,21 @@ main() {
                     echo "$line"
                 fi
             done
+            ;;
+        "setup-cognito")
+            print_header "🔐 Manual Cognito Setup"
+            print_info "Setting up Cognito manually..."
+            setup_cognito
+            ;;
+        "test-cognito")
+            print_header "🧪 Test Cognito Setup"
+            print_info "Running Cognito setup tests..."
+            if [ -f "./test-cognito-setup.sh" ]; then
+                ./test-cognito-setup.sh
+            else
+                print_error "test-cognito-setup.sh not found"
+                exit 1
+            fi
             ;;
         "help"|"-h"|"--help")
             cmd_help
