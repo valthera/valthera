@@ -172,18 +172,34 @@ start_react_app() {
         return 1
     fi
     
-    # Check if port 5173 is available
-    if ! check_port_available "5173" "React App"; then
-        print_error "Cannot start React app - port 5173 is in use"
-        print_info "Try: ./valthera-local stop (to stop existing services)"
+    # Check if pnpm is available
+    if ! command -v pnpm &> /dev/null; then
+        print_error "pnpm is not installed or not in PATH"
+        print_info "Please install pnpm: npm install -g pnpm"
+        return 1
+    fi
+    
+    # Check if port 5173 is available and resolve conflicts
+    if ! check_and_resolve_port_conflicts "5173" "React App"; then
         return 1
     fi
     
     print_info "Starting React app..."
     cd app
     
-    # Start React app in background
-    nohup npm run dev > ../logs/react.log 2>&1 &
+    # Check if dependencies are installed
+    if [ ! -d "node_modules" ]; then
+        print_info "Installing React app dependencies..."
+        if ! pnpm install; then
+            print_error "Failed to install React app dependencies"
+            cd ..
+            return 1
+        fi
+        print_success "Dependencies installed"
+    fi
+    
+    # Start React app in background using pnpm
+    nohup pnpm run dev > ../logs/react.log 2>&1 &
     local react_pid=$!
     cd ..
     
@@ -214,10 +230,61 @@ start_sam_api() {
         return 0
     fi
     
-    # Check if port 3000 is available
-    if ! check_port_available "3000" "SAM API"; then
-        print_error "Cannot start SAM API - port 3000 is in use"
-        print_info "Try: ./valthera-local stop (to stop existing services)"
+    # Check if env-local.json exists, generate if missing
+    if [ ! -f "env-local.json" ]; then
+        print_info "env-local.json not found, generating from template..."
+        generate_env_local
+    fi
+    
+    # Check if port 3000 is available and resolve conflicts
+    if ! check_and_resolve_port_conflicts "3000" "SAM API"; then
+        return 1
+    fi
+    
+    print_info "Starting SAM API..."
+    
+    # Create logs directory
+    mkdir -p logs
+    
+    # Start SAM API in background
+    nohup sam local start-api --env-vars env-local.json > logs/sam.log 2>&1 &
+    local sam_pid=$!
+    
+    store_pid "$sam_pid" "$SAM_PID_FILE"
+    print_success "SAM API started (PID: $sam_pid)"
+    print_info "  Logs: tail -f logs/sam.log"
+    
+    # Wait a moment to check if it started successfully  
+    sleep 3
+    if ! is_process_running "$sam_pid"; then
+        print_error "SAM API failed to start. Check logs/sam.log"
+        remove_pid_file "$SAM_PID_FILE"
+        return 1
+    fi
+}
+
+# Start SAM API with force mode (auto-kill conflicts)
+start_sam_api_force() {
+    local pid=$(get_stored_pid "$SAM_PID_FILE")
+    
+    if [ -n "$pid" ] && is_process_running "$pid"; then
+        print_info "SAM API already running (PID: $pid)"
+        return 0
+    fi
+    
+    if [ ! -f "template.yaml" ]; then
+        print_warning "SAM template.yaml not found. Skipping SAM API start."
+        return 0
+    fi
+    
+    # Check if env-local.json exists, generate if missing
+    if [ ! -f "env-local.json" ]; then
+        print_info "env-local.json not found, generating from template..."
+        generate_env_local
+    fi
+    
+    # Check if port 3000 is available and auto-kill conflicts
+    if ! check_and_resolve_port_conflicts "3000" "SAM API" "true"; then
         return 1
     fi
     
@@ -270,6 +337,79 @@ check_port_available() {
     if lsof -ti :$port >/dev/null 2>&1; then
         print_warning "$service_name port $port is already in use"
         return 1
+    else
+        print_success "$service_name port $port is available"
+        return 0
+    fi
+}
+
+# Check and resolve port conflicts with user confirmation
+check_and_resolve_port_conflicts() {
+    local port=$1
+    local service_name=$2
+    local auto_kill=${3:-false}
+    
+    if lsof -ti :$port >/dev/null 2>&1; then
+        local pids=$(lsof -ti :$port)
+        local process_info=$(lsof -ti :$port | xargs ps -o pid,command -p 2>/dev/null || echo "Unknown process")
+        
+        print_warning "$service_name port $port is already in use"
+        print_info "Processes using port $port:"
+        echo "$process_info" | while read line; do
+            echo "  • $line"
+        done
+        
+        if [ "$auto_kill" = "true" ]; then
+            print_info "Auto-killing processes on port $port..."
+            for pid in $pids; do
+                if kill -0 "$pid" 2>/dev/null; then
+                    print_info "Killing process $pid..."
+                    kill "$pid" 2>/dev/null
+                    sleep 1
+                    if kill -0 "$pid" 2>/dev/null; then
+                        print_warning "Force killing process $pid..."
+                        kill -9 "$pid" 2>/dev/null
+                    fi
+                fi
+            done
+            sleep 2
+            if ! lsof -ti :$port >/dev/null 2>&1; then
+                print_success "Port $port is now available"
+                return 0
+            else
+                print_error "Failed to free port $port"
+                return 1
+            fi
+        else
+            echo ""
+            read -p "🚨 Kill processes using port $port? (y/n): " -n 1 -r
+            echo ""
+            if [[ $REPLY =~ ^[Yy]$ ]]; then
+                print_info "Killing processes on port $port..."
+                for pid in $pids; do
+                    if kill -0 "$pid" 2>/dev/null; then
+                        print_info "Killing process $pid..."
+                        kill "$pid" 2>/dev/null
+                        sleep 1
+                        if kill -0 "$pid" 2>/dev/null; then
+                            print_warning "Force killing process $pid..."
+                            kill -9 "$pid" 2>/dev/null
+                        fi
+                    fi
+                done
+                sleep 2
+                if ! lsof -ti :$port >/dev/null 2>&1; then
+                    print_success "Port $port is now available"
+                    return 0
+                else
+                    print_error "Failed to free port $port"
+                    return 1
+                fi
+            else
+                print_error "Cannot start $service_name - port $port is in use"
+                return 1
+            fi
+        fi
     else
         print_success "$service_name port $port is available"
         return 0
@@ -428,9 +568,18 @@ setup_sqs_queues() {
 setup_cognito() {
     print_subheader "Setting up Cognito (Local)"
     if [ -f "./scripts/setup-local-cognito.sh" ]; then
-        ./scripts/setup-local-cognito.sh
+        print_info "Running Cognito setup script..."
+        if ./scripts/setup-local-cognito.sh; then
+            print_success "Cognito setup completed successfully"
+        else
+            print_error "Cognito setup failed. Check the logs above for errors."
+            print_info "You can try running the setup manually: ./scripts/setup-local-cognito.sh"
+            return 1
+        fi
     else
-        print_warning "Cognito setup script not found. Run manually: ./scripts/setup-local-cognito.sh"
+        print_error "Cognito setup script not found at ./scripts/setup-local-cognito.sh"
+        print_info "Please ensure the script exists and is executable."
+        return 1
     fi
 }
 
@@ -498,6 +647,35 @@ setup_datasources() {
     done
 }
 
+# Generate env-local.json from template
+generate_env_local() {
+    print_subheader "Setting up Environment Configuration"
+    
+    if [ -f "env-local.json" ]; then
+        print_info "env-local.json already exists"
+        return 0
+    fi
+    
+    if [ ! -f "env-local.template.json" ]; then
+        print_error "env-local.template.json not found"
+        print_info "Please ensure the template file exists"
+        return 1
+    fi
+    
+    print_info "Generating env-local.json from template..."
+    
+    # Copy the template
+    cp env-local.template.json env-local.json
+    
+    if [ $? -eq 0 ]; then
+        print_success "Generated env-local.json from template"
+        print_info "You can customize this file for your local environment"
+    else
+        print_error "Failed to generate env-local.json"
+        return 1
+    fi
+}
+
 # Command functions
 cmd_start() {
     print_header "Starting Valthera Local Services"
@@ -517,28 +695,110 @@ cmd_start() {
     setup_datasources
     
     # Setup Cognito if container is running
+    print_info "Checking Cognito container status..."
     if [ "$(get_container_status valthera-cognito-local)" = "running" ]; then
+        print_info "Cognito container is running, waiting for service to be ready..."
         wait_for_service "http://localhost:9239" "Cognito-Local"
         setup_cognito
+    else
+        print_warning "Cognito container is not running. Waiting for it to start..."
+        # Wait a bit more for the container to start
+        local cognito_attempts=0
+        while [ $cognito_attempts -lt 15 ] && [ "$(get_container_status valthera-cognito-local)" != "running" ]; do
+            sleep 2
+            cognito_attempts=$((cognito_attempts + 1))
+            echo -n "."
+        done
+        echo ""
+        
+        if [ "$(get_container_status valthera-cognito-local)" = "running" ]; then
+            print_success "Cognito container is now running"
+            wait_for_service "http://localhost:9239" "Cognito-Local"
+            setup_cognito
+        else
+            print_error "Cognito container failed to start. Check docker-compose logs."
+            print_info "You can try: docker-compose logs cognito-local"
+        fi
     fi
     
     print_success "All AWS services started successfully!"
     
-    # Start application services  
-    print_subheader "Starting Application Services"
+    # Start SAM API only (React app will be started manually)
+    print_subheader "Starting SAM API"
     
     # Create logs directory
     mkdir -p logs
-    
-    # Start React app
-    start_react_app
     
     # Start SAM API
     start_sam_api
     
     echo ""
-    print_success "🎉 All services started!"
+    print_success "🎉 Backend services started!"
     print_info "📁 Application logs are in: logs/"
+    print_info "🚀 To start React app manually: cd app && pnpm run dev"
+    cmd_status
+}
+
+cmd_start_force() {
+    print_header "Starting Valthera Local Services (Force Mode)"
+    print_info "Force mode will automatically kill conflicting processes"
+    check_docker
+    
+    print_info "Starting Docker services..."
+    docker-compose up -d
+    
+    # Wait for core services
+    wait_for_service "http://localhost:8000" "DynamoDB"
+    wait_for_service "http://localhost:4566/_localstack/health" "LocalStack"
+    
+    # Setup resources
+    setup_dynamodb_tables
+    setup_s3_buckets
+    setup_sqs_queues
+    setup_datasources
+    
+    # Setup Cognito if container is running
+    print_info "Checking Cognito container status..."
+    if [ "$(get_container_status valthera-cognito-local)" = "running" ]; then
+        print_info "Cognito container is running, waiting for service to be ready..."
+        wait_for_service "http://localhost:9239" "Cognito-Local"
+        setup_cognito
+    else
+        print_warning "Cognito container is not running. Waiting for it to start..."
+        # Wait a bit more for the container to start
+        local cognito_attempts=0
+        while [ $cognito_attempts -lt 15 ] && [ "$(get_container_status valthera-cognito-local)" != "running" ]; do
+            sleep 2
+            cognito_attempts=$((cognito_attempts + 1))
+            echo -n "."
+        done
+        echo ""
+        
+        if [ "$(get_container_status valthera-cognito-local)" = "running" ]; then
+            print_success "Cognito container is now running"
+            wait_for_service "http://localhost:9239" "Cognito-Local"
+            setup_cognito
+        else
+            print_error "Cognito container failed to start. Check docker-compose logs."
+            print_info "You can try: docker-compose logs cognito-local"
+        fi
+    fi
+    
+    print_success "All AWS services started successfully!"
+    
+    # Start SAM API only (React app will be started manually)
+    print_subheader "Starting SAM API (Force Mode)"
+    
+    # Create logs directory
+    mkdir -p logs
+    
+    # Start SAM API with force mode
+    start_sam_api_force
+    
+    echo ""
+    print_success "🎉 Backend services started!"
+    print_info "📁 Application logs are in: logs/"
+    print_info "🚀 To start React app manually: cd app && pnpm run dev"
     cmd_status
 }
 
@@ -547,14 +807,17 @@ cmd_stop() {
     
     # Stop application services first
     print_subheader "Stopping Application Services"
-    stop_app_process "React App" "$REACT_PID_FILE" "5173"
     stop_app_process "SAM API" "$SAM_PID_FILE" "3000"
+    
+    # Note: React app is not automatically started, so we don't stop it here
+    # If you have a React app running manually, stop it with Ctrl+C
     
     # Stop Docker services
     print_subheader "Stopping AWS Services"
     docker-compose stop
     
-    print_success "All services stopped"
+    print_success "Backend services stopped"
+    print_info "💡 If you have React app running manually, stop it with Ctrl+C"
 }
 
 cmd_destroy() {
@@ -562,8 +825,10 @@ cmd_destroy() {
     
     # Stop application services first
     print_subheader "Stopping Application Services"
-    stop_app_process "React App" "$REACT_PID_FILE" "5173"
     stop_app_process "SAM API" "$SAM_PID_FILE" "3000"
+    
+    # Note: React app is not automatically started, so we don't stop it here
+    # If you have a React app running manually, stop it with Ctrl+C
     
     # Remove Docker services
     print_subheader "Destroying AWS Services"
@@ -580,7 +845,8 @@ cmd_destroy() {
     rm -rf logs/
     rm -f .valthera-*.pid
     
-    print_success "All services destroyed and data removed"
+    print_success "Backend services destroyed and data removed"
+    print_info "💡 If you have React app running manually, stop it with Ctrl+C"
 }
 
 cmd_restart() {
@@ -626,20 +892,11 @@ cmd_status() {
     
     print_subheader "Application Services"
     
-    # Check React App
-    local react_pid=$(get_stored_pid "$REACT_PID_FILE")
+    # Check React App (not automatically managed)
     local react_port_pids=$(get_processes_on_port "5173")
     
-    if [ -n "$react_pid" ] && is_process_running "$react_pid"; then
-        print_success "React App: Running (Tracked PID: $react_pid)"
-        print_info "  URL: http://localhost:5173"
-        if curl -s "http://localhost:5173" >/dev/null 2>&1; then
-            print_info "  Status: ✅ Healthy"
-        else
-            print_warning "  Status: ⚠️  Starting/Unhealthy"
-        fi
-    elif [ -n "$react_port_pids" ]; then
-        print_warning "React App: Running (Untracked PID: $react_port_pids)"
+    if [ -n "$react_port_pids" ]; then
+        print_success "React App: Running (Manual PID: $react_port_pids)"
         print_info "  URL: http://localhost:5173"
         if curl -s "http://localhost:5173" >/dev/null 2>&1; then
             print_info "  Status: ✅ Healthy"
@@ -647,9 +904,9 @@ cmd_status() {
             print_warning "  Status: ⚠️  Starting/Unhealthy"
         fi
     else
-        print_warning "React App: Not Running"
+        print_info "React App: Not Running (Manual start required)"
         print_info "  URL: http://localhost:5173"
-        print_info "  Status: ❌ Not running"
+        print_info "  To start: cd app && pnpm run dev"
     fi
     echo ""
     
@@ -820,24 +1077,24 @@ cmd_apps() {
         "start")
             print_header "Starting Application Services"
             mkdir -p logs
-            start_react_app
+            print_info "Starting SAM API only (React app is manual)"
             start_sam_api
-            print_success "Application services started"
+            print_success "SAM API started"
+            print_info "To start React app manually: cd app && pnpm run dev"
             ;;
         "stop")
             print_header "Stopping Application Services"
-            stop_app_process "React App" "$REACT_PID_FILE"
             stop_app_process "SAM API" "$SAM_PID_FILE"
-            print_success "Application services stopped"
+            print_success "SAM API stopped"
+            print_info "💡 If you have React app running manually, stop it with Ctrl+C"
             ;;
         "restart")
             print_header "Restarting Application Services"
-            stop_app_process "React App" "$REACT_PID_FILE"
             stop_app_process "SAM API" "$SAM_PID_FILE"
             sleep 2
-            start_react_app
             start_sam_api
-            print_success "Application services restarted"
+            print_success "SAM API restarted"
+            print_info "💡 If you have React app running manually, restart it manually"
             ;;
         "logs")
             local service=${2:-}
@@ -873,10 +1130,13 @@ cmd_apps() {
             echo "Usage: ./valthera-local apps <command>"
             echo ""
             echo "Commands:"
-            echo "  start    - Start React app and SAM API"
-            echo "  stop     - Stop React app and SAM API"
-            echo "  restart  - Restart React app and SAM API"
+            echo "  start    - Start SAM API only (React app is manual)"
+            echo "  stop     - Stop SAM API only (React app is manual)"
+            echo "  restart  - Restart SAM API only (React app is manual)"
             echo "  logs     - Show logs (react/sam)"
+            echo ""
+            echo "Note: React app is not automatically managed."
+            echo "To start React app: cd app && pnpm run dev"
             ;;
     esac
 }
@@ -1103,7 +1363,7 @@ cmd_rebuild() {
     echo ""
     print_info "🚀 Next Steps:"
     echo "1. Start your React development server:"
-    echo "   cd app && npm run dev"
+    echo "   cd app && pnpm run dev"
     echo ""
     echo "2. Test your application at:"
     echo "   http://localhost:5173"
@@ -1135,7 +1395,7 @@ cmd_rebuild() {
         print_success "🎉 Complete setup finished!"
         print_info "Frontend will be available at: http://localhost:5173"
     else
-        print_info "To start the frontend later, run: cd app && npm run dev"
+        print_info "To start the frontend later, run: cd app && pnpm run dev"
     fi
 }
 
@@ -1146,9 +1406,10 @@ cmd_help() {
     echo "    ./valthera-local <command> [options]"
     echo ""
     echo -e "${BOLD}COMMANDS:${NC}"
-    echo -e "    ${GREEN}start${NC}        Start all services (Docker + Apps)"
-    echo -e "    ${GREEN}stop${NC}         Stop all services (keeps data)"
-    echo -e "    ${GREEN}restart${NC}      Restart all services"
+    echo -e "    ${GREEN}start${NC}        Start backend services (Docker + SAM API)"
+    echo -e "    ${GREEN}start-force${NC}  Start backend services (auto-kill conflicts)"
+    echo -e "    ${GREEN}stop${NC}         Stop backend services (keeps data)"
+    echo -e "    ${GREEN}restart${NC}      Restart backend services"
     echo -e "    ${GREEN}destroy${NC}      Stop services and remove all data"
     echo -e "    ${GREEN}rebuild${NC}      Complete rebuild (clean + build + setup + start)"
     echo -e "    ${GREEN}status${NC}       Show status of all services and resources"
@@ -1157,17 +1418,28 @@ cmd_help() {
     echo -e "    ${GREEN}urls${NC}         Show all service URLs and endpoints"
     echo -e "    ${GREEN}test${NC}         Test connectivity to all services"
     echo -e "    ${GREEN}sqs${NC} <cmd>     SQS debug commands (send/stats/peek/web)"
-    echo -e "    ${GREEN}debug${NC} <cmd>   Debug commands (video-processor/sqs-test)"    echo -e "    ${GREEN}codes${NC}        Watch for Cognito verification codes"
+    echo -e "    ${GREEN}debug${NC} <cmd>   Debug commands (video-processor/sqs-test)"
+    echo -e "    ${GREEN}codes${NC}        Watch for Cognito verification codes"
+    echo -e "    ${GREEN}setup-cognito${NC} Manually setup Cognito (if auto-setup fails)"
+    echo -e "    ${GREEN}test-cognito${NC}  Test Cognito setup and configuration"
+    echo -e "    ${GREEN}install-deps${NC}  Install React app dependencies"
+    echo -e "    ${GREEN}check-ports${NC}   Check and resolve port conflicts"
+    echo -e "    ${GREEN}generate-env${NC}  Generate env-local.json from template"
     echo -e "    ${GREEN}clean${NC}        Clean up all resources (tables, buckets, queues)"
     echo -e "    ${GREEN}help${NC}         Show this help message"
     echo ""
     echo -e "${BOLD}EXAMPLES:${NC}"
-    echo "    ./valthera-local start              # Start everything"
+    echo "    ./valthera-local start              # Start backend services"
+    echo "    ./valthera-local start-force        # Start with auto-kill conflicts"
     echo "    ./valthera-local rebuild            # Complete rebuild and start"
-    echo "    ./valthera-local restart            # Restart all services (including apps)"
-    echo "    ./valthera-local apps restart       # Restart just React + SAM API"
+    echo "    ./valthera-local restart            # Restart backend services"
+    echo "    ./valthera-local apps restart       # Restart just SAM API"
     echo "    ./valthera-local apps logs react    # Show React app logs"
     echo "    ./valthera-local status             # Check what's running"
+    echo "    ./valthera-local setup-cognito      # Manually setup Cognito"
+    echo "    ./valthera-local install-deps       # Install React dependencies"
+    echo "    ./valthera-local check-ports        # Check and resolve port conflicts"
+    echo "    ./valthera-local generate-env       # Generate env-local.json"
     echo "    ./valthera-local destroy            # Nuclear option - remove everything"
     echo ""
     echo -e "${BOLD}AWS SERVICES:${NC}"
@@ -1176,8 +1448,8 @@ cmd_help() {
     echo "    • Cognito Local (port 9239)"
     echo ""
     echo -e "${BOLD}APPLICATION SERVICES:${NC}"
-    echo "    • SAM API (port 3000) - Run: sam local start-api"
-    echo "    • React App (port 5173) - Run: cd app && npm run dev"
+    echo "    • SAM API (port 3000) - Automatically started"
+    echo "    • React App (port 5173) - Manual start: cd app && pnpm run dev"
     echo ""
     echo -e "${BOLD}RESOURCES CREATED:${NC}"
     echo "    • DynamoDB: valthera-dev-users, valthera-dev-main, valthera-dev-videos"
@@ -1495,6 +1767,9 @@ main() {
         "start"|"up")
             cmd_start
             ;;
+        "start-force"|"up-force")
+            cmd_start_force
+            ;;
         "stop"|"down")
             cmd_stop
             ;;
@@ -1542,6 +1817,105 @@ main() {
                     echo "$line"
                 fi
             done
+            ;;
+        "setup-cognito")
+            print_header "🔐 Manual Cognito Setup"
+            print_info "Setting up Cognito manually..."
+            setup_cognito
+            ;;
+        "test-cognito")
+            print_header "🧪 Test Cognito Setup"
+            print_info "Running Cognito setup tests..."
+            if [ -f "./test-cognito-setup.sh" ]; then
+                ./test-cognito-setup.sh
+            else
+                print_error "test-cognito-setup.sh not found"
+                exit 1
+            fi
+            ;;
+        "install-deps")
+            print_header "📦 Install React Dependencies"
+            print_info "Installing React app dependencies..."
+            if [ ! -d "app" ]; then
+                print_error "React app directory 'app' not found"
+                exit 1
+            fi
+            
+            if ! command -v pnpm &> /dev/null; then
+                print_error "pnpm is not installed or not in PATH"
+                print_info "Please install pnpm: npm install -g pnpm"
+                exit 1
+            fi
+            
+            cd app
+            if pnpm install; then
+                print_success "React dependencies installed successfully"
+            else
+                print_error "Failed to install React dependencies"
+                cd ..
+                exit 1
+            fi
+            cd ..
+            ;;
+        "check-ports")
+            print_header "🔍 Check Port Conflicts"
+            print_info "Checking for port conflicts..."
+            
+            local ports=("8000:DynamoDB" "4566:LocalStack" "9324:SQS" "9239:Cognito" "3000:SAM API" "5173:React App")
+            local has_conflicts=false
+            
+            for port_info in "${ports[@]}"; do
+                IFS=':' read -r port service <<< "$port_info"
+                if lsof -ti :$port >/dev/null 2>&1; then
+                    has_conflicts=true
+                    local pids=$(lsof -ti :$port)
+                    local process_info=$(lsof -ti :$port | xargs ps -o pid,command -p 2>/dev/null || echo "Unknown process")
+                    
+                    print_warning "$service port $port is in use"
+                    print_info "Processes using port $port:"
+                    echo "$process_info" | while read line; do
+                        echo "  • $line"
+                    done
+                    echo ""
+                else
+                    print_success "$service port $port is available"
+                fi
+            done
+            
+            if [ "$has_conflicts" = "true" ]; then
+                echo ""
+                read -p "🚨 Kill all conflicting processes? (y/n): " -n 1 -r
+                echo ""
+                if [[ $REPLY =~ ^[Yy]$ ]]; then
+                    print_info "Killing all conflicting processes..."
+                    for port_info in "${ports[@]}"; do
+                        IFS=':' read -r port service <<< "$port_info"
+                        if lsof -ti :$port >/dev/null 2>&1; then
+                            local pids=$(lsof -ti :$port)
+                            print_info "Killing processes on port $port..."
+                            for pid in $pids; do
+                                if kill -0 "$pid" 2>/dev/null; then
+                                    kill "$pid" 2>/dev/null
+                                    sleep 1
+                                    if kill -0 "$pid" 2>/dev/null; then
+                                        kill -9 "$pid" 2>/dev/null
+                                    fi
+                                fi
+                            done
+                        fi
+                    done
+                    sleep 2
+                    print_success "All conflicting processes killed"
+                else
+                    print_info "No processes were killed"
+                fi
+            else
+                print_success "No port conflicts found"
+            fi
+            ;;
+        "generate-env")
+            print_header "📝 Generate Environment Configuration"
+            generate_env_local
             ;;
         "help"|"-h"|"--help")
             cmd_help

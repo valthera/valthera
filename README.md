@@ -77,15 +77,75 @@ valthera/
 ```bash
 git clone https://github.com/valthera/valthera.git
 cd valthera
+
+# Start backend services (Docker containers, SAM API, etc.)
 ./valthera-local start
+
+# In a new terminal, install React app dependencies and start the app
+cd app && pnpm install && pnpm run dev
 ```
 
 This sets up:
 
-* React app at [http://localhost:5173](http://localhost:5173)
-* API backend at [http://localhost:3000](http://localhost:3000)
-* Local S3, DynamoDB, and Cognito
-* Docker containers for V-JEPA and agent
+* **Backend Services** (started by `valthera-local start`):
+  * API backend at [http://localhost:3000](http://localhost:3000)
+  * Local S3, DynamoDB, and Cognito
+  * Docker containers for V-JEPA and agent
+
+* **Frontend App** (started manually):
+  * React app at [http://localhost:5173](http://localhost:5173)
+
+### First Time Setup
+
+If this is your first time running the project:
+
+1. **Start backend services:**
+   ```bash
+   ./valthera-local start
+   ```
+   This will:
+   - Start all Docker containers
+   - Set up AWS resources (DynamoDB tables, S3 buckets, SQS queues)
+   - Configure Cognito with test user
+   - Start SAM API
+   - Generate environment files if missing
+
+2. **Install React app dependencies and start the app:**
+   ```bash
+   cd app && pnpm install && pnpm run dev
+   ```
+   This will:
+   - Install all React app dependencies
+   - Start Vite development server
+   - Serve the React app
+
+### Subsequent Runs
+
+For subsequent runs, you can skip the install step if dependencies are already installed:
+
+```bash
+# Start backend services
+./valthera-local start
+
+# Start React app (if dependencies are already installed)
+cd app && pnpm run dev
+```
+
+### Test Credentials
+
+After setup, you can log in with:
+- **Email**: test@valthera.com
+- **Password**: TestPass123!
+
+### Troubleshooting
+
+If you encounter issues:
+
+- **Check service status:** `./valthera-local status`
+- **View logs:** `tail -f logs/sam.log` (backend) or check browser console (frontend)
+- **Restart services:** `./valthera-local restart`
+- **Port conflicts:** `./valthera-local check-ports`
+- **Reinstall React dependencies:** `cd app && pnpm install`
 
 To build the stereo camera, check the `hardware/` folder for CAD files and setup steps.
 
@@ -112,6 +172,6 @@ Start with [CONTRIBUTING.md](./CONTRIBUTING.md) or open an issue with ideas.
 
 ---
 
-## Summary
+## Summaryg
 
 Valthera gives you the full stack for building custom video classifiers — from the camera to the model. It’s open-source, runs locally or in the cloud, and is designed to be simple to use and easy to modify.
