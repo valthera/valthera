@@ -1,0 +1,15 @@
+/* Minimal CSS reset that won't conflict with Mantine */
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  font-family: 'Work Sans', ui-sans-serif, system-ui, sans-serif;  
+}
+
+#root {
+  height: 100%;
+}

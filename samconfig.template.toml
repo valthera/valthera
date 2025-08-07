@@ -1,0 +1,26 @@
+version = 0.1
+
+[dev]
+[dev.deploy]
+[dev.deploy.parameters]
+stack_name = "valthera-dev"
+s3_bucket = "aws-sam-cli-managed-default-samclisourcebucket-XXXXXXXXXXXX"
+s3_prefix = "valthera-dev"
+region = "us-east-1"
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM"
+parameter_overrides = "Environment=dev ResourcePrefix=valthera-dev TablePrefix=valthera-dev BucketPrefix=valthera-dev"
+
+[dev.local_start_api]
+[dev.local_start_api.parameters]
+parameter_overrides = "Environment=dev ResourcePrefix=valthera-dev TablePrefix=valthera-dev BucketPrefix=valthera-dev IsLocal=true"
+
+[staging]
+[staging.deploy.parameters]
+stack_name = "valthera-staging"
+parameter_overrides = "Environment=staging ResourcePrefix=valthera-staging TablePrefix=valthera-staging BucketPrefix=valthera-staging"
+
+[prod]
+[prod.deploy.parameters]
+stack_name = "valthera-prod"
+parameter_overrides = "Environment=prod ResourcePrefix=valthera-prod TablePrefix=valthera-prod BucketPrefix=valthera-prod" 

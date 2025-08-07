@@ -1,0 +1,77 @@
+# Dockerfile for EC2 video processor deployment
+FROM amazonlinux:2
+
+# Set working directory
+WORKDIR /opt/video-processor
+
+# Install system dependencies
+RUN yum update -y && yum install -y \
+    python3 \
+    python3-pip \
+    python3-devel \
+    gcc \
+    gcc-c++ \
+    make \
+    opencv \
+    opencv-devel \
+    opencv-python \
+    curl \
+    && yum clean all
+
+# Install Poetry
+RUN curl -sSL https://install.python-poetry.org | python3 -
+ENV PATH="/root/.local/bin:$PATH"
+
+# Copy scripts directory first
+COPY scripts/ ./scripts/
+
+# Make scripts executable
+RUN chmod +x scripts/*.sh
+
+# Copy application files
+COPY video_processor/ ./video_processor/
+COPY pyproject.toml .
+
+# Build stage: Populate environment configuration
+ARG SQS_QUEUE_URL
+ARG S3_BUCKET
+ARG AWS_REGION=us-east-1
+ARG WORKER_LOG_LEVEL=INFO
+
+# Run the build script to populate env.sh
+RUN ./scripts/build-env.sh
+
+# Install Python dependencies
+RUN poetry install --no-dev
+
+# Create systemd service file
+RUN cat > /etc/systemd/system/video-processor.service << 'EOF'
+[Unit]
+Description=Video Processor Worker
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/video-processor
+Environment=PATH=/root/.local/bin:/usr/local/bin:/usr/bin:/bin
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/root/.local/bin/poetry run python video_processor/worker.py
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+# Set up the application
+RUN systemctl enable video-processor.service
+
+# Expose any necessary ports (if needed)
+# EXPOSE 8080
+
+# Default command (can be overridden)
+CMD ["/bin/bash", "-c", "systemctl start video-processor.service && tail -f /dev/null"] 

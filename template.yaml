@@ -1,0 +1,1085 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Valthera Infrastructure
+
+Globals:
+  Function:
+    Runtime: python3.9
+    Timeout: 30
+    MemorySize: 512
+    Environment:
+      Variables:
+        ENVIRONMENT: !Ref Environment
+        LOG_LEVEL: INFO
+    Tags:
+      Project: valthera
+      Environment: !Ref Environment
+      ManagedBy: SAM
+
+Parameters:
+  Environment:
+    Type: String
+    Default: dev
+    AllowedValues: [dev, staging, prod]
+    Description: Environment name
+  
+  ResourcePrefix:
+    Type: String
+    Default: valthera-dev
+    Description: Resource prefix for naming
+  
+  TablePrefix:
+    Type: String
+    Default: valthera-dev
+    Description: DynamoDB table prefix
+  
+  BucketPrefix:
+    Type: String
+    Default: valthera-dev
+    Description: S3 bucket prefix
+
+  IsLocal:
+    Type: String
+    Default: "false"
+    AllowedValues: ["true", "false"]
+    Description: Enable local development settings
+
+Conditions:
+  IsLocal: !Equals [!Ref IsLocal, "true"]
+
+Resources:
+  # DynamoDB Tables
+  UserTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "${TablePrefix}-users"
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: user_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: user_id
+          KeyType: HASH
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+
+  MainTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "${TablePrefix}-main"
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: PK
+          AttributeType: S
+        - AttributeName: SK
+          AttributeType: S
+      KeySchema:
+        - AttributeName: PK
+          KeyType: HASH
+        - AttributeName: SK
+          KeyType: RANGE
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+
+  VideoTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "${TablePrefix}-videos"
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: video_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: video_id
+          KeyType: HASH
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+
+  # S3 Buckets
+  VideoBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "${BucketPrefix}-videos-${AWS::AccountId}"
+      VersioningConfiguration:
+        Status: Enabled
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      CorsConfiguration:
+        CorsRules:
+          - AllowedHeaders: ['*']
+            AllowedMethods: [GET, HEAD, PUT, POST, DELETE]
+            AllowedOrigins: ['https://yourdomain.com']
+            ExposedHeaders: [ETag, Content-Length, Content-Type]
+            MaxAge: 3000
+
+  DatasourcesBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "${BucketPrefix}-datasources-${AWS::AccountId}"
+      VersioningConfiguration:
+        Status: Enabled
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      CorsConfiguration:
+        CorsRules:
+          - AllowedHeaders: ['*']
+            AllowedMethods: [GET, HEAD, PUT, POST, DELETE]
+            AllowedOrigins: ['https://yourdomain.com']
+            ExposedHeaders: [ETag, Content-Length, Content-Type]
+            MaxAge: 3000
+
+  # SQS Queues
+  VideoProcessorQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "${ResourcePrefix}-video-processor-queue"
+      VisibilityTimeout: 60
+      MessageRetentionPeriod: 1209600
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt VideoProcessorDLQ.Arn
+        maxReceiveCount: 3
+
+  VideoProcessorDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "${ResourcePrefix}-video-processor-dlq"
+      MessageRetentionPeriod: 1209600
+
+  # Cognito User Pool
+  UserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: !Sub "${ResourcePrefix}-user-pool"
+      AutoVerifiedAttributes:
+        - email
+      UsernameAttributes:
+        - email
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 8
+          RequireUppercase: true
+          RequireLowercase: true
+          RequireNumbers: true
+          RequireSymbols: false
+      MfaConfiguration: "OFF"
+
+  UserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      UserPoolId: !Ref UserPool
+      ClientName: !Sub "${ResourcePrefix}-client"
+      GenerateSecret: false
+      ExplicitAuthFlows:
+        - ALLOW_USER_PASSWORD_AUTH
+        - ALLOW_REFRESH_TOKEN_AUTH
+        - ALLOW_USER_SRP_AUTH
+      PreventUserExistenceErrors: ENABLED
+
+  # API Gateway
+  ValtheraAPI:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: !Sub "${ResourcePrefix}-api"
+      StageName: !Ref Environment
+      Cors:
+        AllowMethods: "'GET,POST,PUT,DELETE,OPTIONS'"
+        AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent,X-Requested-With'"
+        AllowOrigin: "'*'"
+        AllowCredentials: "'false'"
+      Auth:
+        DefaultAuthorizer: CognitoAuthorizer
+        Authorizers:
+          CognitoAuthorizer:
+            UserPoolArn: !GetAtt UserPool.Arn
+
+  # Lambda Functions - Concepts Domain
+  ConceptCreateFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "${ResourcePrefix}-concept-create"
+      CodeUri: lambdas/functions/concepts/create/
+      Handler: app.lambda_handler
+      Environment:
+        Variables:
+          MAIN_TABLE_NAME: !Sub "${TablePrefix}-main"
+          USER_TABLE_NAME: !Sub "${TablePrefix}-users"
+          VIDEO_BUCKET_NAME: !Ref VideoBucket
+          DATASOURCES_BUCKET_NAME: !Ref DatasourcesBucket
+          USER_POOL_ID: !Ref UserPool
+          USER_POOL_CLIENT_ID: !Ref UserPoolClient
+          AWS_ENDPOINT_URL: !If [IsLocal, "http://localhost:8000", !Ref "AWS::NoValue"]
+          S3_ENDPOINT_URL: !If [IsLocal, "http://localhost:4566", !Ref "AWS::NoValue"]
+          ALLOW_UNAUTHENTICATED_LOCAL: !If [IsLocal, "true", !Ref "AWS::NoValue"]
+          LOCAL_DEFAULT_USER_ID: !If [IsLocal, "local-dev-user", !Ref "AWS::NoValue"]
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref MainTable
+        - S3CrudPolicy:
+            BucketName: !Ref VideoBucket
+        - S3CrudPolicy:
+            BucketName: !Ref DatasourcesBucket
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ValtheraAPI
+            Path: /api/projects/{projectId}/concepts
+            Method: POST
+            Auth:
+              Authorizer: NONE
+
+  ConceptGetFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "${ResourcePrefix}-concept-get"
+      CodeUri: lambdas/functions/concepts/get/
+      Handler: app.lambda_handler
+      Environment:
+        Variables:
+          MAIN_TABLE_NAME: !Sub "${TablePrefix}-main"
+          USER_TABLE_NAME: !Sub "${TablePrefix}-users"
+          USER_POOL_ID: !Ref UserPool
+          USER_POOL_CLIENT_ID: !Ref UserPoolClient
+          AWS_ENDPOINT_URL: !If [IsLocal, "http://localhost:8000", !Ref "AWS::NoValue"]
+          S3_ENDPOINT_URL: !If [IsLocal, "http://localhost:4566", !Ref "AWS::NoValue"]
+          ALLOW_UNAUTHENTICATED_LOCAL: !If [IsLocal, "true", !Ref "AWS::NoValue"]
+          LOCAL_DEFAULT_USER_ID: !If [IsLocal, "local-dev-user", !Ref "AWS::NoValue"]
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref MainTable
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ValtheraAPI
+            Path: /api/projects/{projectId}/concepts
+            Method: GET
+            Auth:
+              Authorizer: NONE
+
+  ConceptGetByIdFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "${ResourcePrefix}-concept-get-by-id"
+      CodeUri: lambdas/functions/concepts/get-by-id/
+      Handler: app.lambda_handler
+      Environment:
+        Variables:
+          MAIN_TABLE_NAME: !Sub "${TablePrefix}-main"
+          USER_TABLE_NAME: !Sub "${TablePrefix}-users"
+          USER_POOL_ID: !Ref UserPool
+          USER_POOL_CLIENT_ID: !Ref UserPoolClient
+          AWS_ENDPOINT_URL: !If [IsLocal, "http://localhost:8000", !Ref "AWS::NoValue"]
+          S3_ENDPOINT_URL: !If [IsLocal, "http://localhost:4566", !Ref "AWS::NoValue"]
+          ALLOW_UNAUTHENTICATED_LOCAL: !If [IsLocal, "true", !Ref "AWS::NoValue"]
+          LOCAL_DEFAULT_USER_ID: !If [IsLocal, "local-dev-user", !Ref "AWS::NoValue"]
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref MainTable
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ValtheraAPI
+            Path: /api/projects/{projectId}/concepts/{conceptId}
+            Method: GET
+            Auth:
+              Authorizer: NONE
+
+  ConceptUpdateFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "${ResourcePrefix}-concept-update"
+      CodeUri: lambdas/functions/concepts/update/
+      Handler: app.lambda_handler
+      Environment:
+        Variables:
+          MAIN_TABLE_NAME: !Sub "${TablePrefix}-main"
+          USER_TABLE_NAME: !Sub "${TablePrefix}-users"
+          USER_POOL_ID: !Ref UserPool
+          USER_POOL_CLIENT_ID: !Ref UserPoolClient
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref MainTable
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ValtheraAPI
+            Path: /api/projects/{projectId}/concepts/{conceptId}
+            Method: PUT
+            Auth:
+              Authorizer: NONE
+
+  ConceptDeleteFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "${ResourcePrefix}-concept-delete"
+      CodeUri: lambdas/functions/concepts/delete/
+      Handler: app.lambda_handler
+      Environment:
+        Variables:
+          MAIN_TABLE_NAME: !Sub "${TablePrefix}-main"
+          USER_TABLE_NAME: !Sub "${TablePrefix}-users"
+          USER_POOL_ID: !Ref UserPool
+          USER_POOL_CLIENT_ID: !Ref UserPoolClient
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref MainTable
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ValtheraAPI
+            Path: /api/projects/{projectId}/concepts/{conceptId}
+            Method: DELETE
+            Auth:
+              Authorizer: NONE
+
+  ConceptUploadSamplesFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "${ResourcePrefix}-concept-upload-samples"
+      CodeUri: lambdas/functions/concepts/upload-samples/
+      Handler: app.lambda_handler
+      Environment:
+        Variables:
+          MAIN_TABLE_NAME: !Sub "${TablePrefix}-main"
+          USER_TABLE_NAME: !Sub "${TablePrefix}-users"
+          VIDEO_BUCKET_NAME: !Ref VideoBucket
+          USER_POOL_ID: !Ref UserPool
+          USER_POOL_CLIENT_ID: !Ref UserPoolClient
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref MainTable
+        - S3CrudPolicy:
+            BucketName: !Ref VideoBucket
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ValtheraAPI
+            Path: /api/projects/{projectId}/concepts/{conceptId}/samples
+            Method: POST
+            Auth:
+              Authorizer: NONE
+
+  ConceptLinkVideosFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "${ResourcePrefix}-concept-link-videos"
+      CodeUri: lambdas/functions/concepts/link-videos/
+      Handler: app.lambda_handler
+      Environment:
+        Variables:
+          MAIN_TABLE_NAME: !Sub "${TablePrefix}-main"
+          USER_TABLE_NAME: !Sub "${TablePrefix}-users"
+          USER_POOL_ID: !Ref UserPool
+          USER_POOL_CLIENT_ID: !Ref UserPoolClient
+          AWS_ENDPOINT_URL: !If [IsLocal, "http://localhost:8000", !Ref "AWS::NoValue"]
+          S3_ENDPOINT_URL: !If [IsLocal, "http://localhost:4566", !Ref "AWS::NoValue"]
+          VIDEO_BUCKET_NAME: !Ref VideoBucket
+          DATASOURCES_BUCKET_NAME: !Ref DatasourcesBucket
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref MainTable
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ValtheraAPI
+            Path: /api/projects/{projectId}/concepts/{conceptId}/videos
+            Method: POST
+            Auth:
+              Authorizer: NONE
+
+  ConceptUnlinkVideoFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "${ResourcePrefix}-concept-unlink-video"
+      CodeUri: lambdas/functions/concepts/unlink-video/
+      Handler: app.lambda_handler
+      Environment:
+        Variables:
+          MAIN_TABLE_NAME: !Sub "${TablePrefix}-main"
+          USER_TABLE_NAME: !Sub "${TablePrefix}-users"
+          USER_POOL_ID: !Ref UserPool
+          USER_POOL_CLIENT_ID: !Ref UserPoolClient
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref MainTable
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ValtheraAPI
+            Path: /api/projects/{projectId}/concepts/{conceptId}/videos/{videoId}
+            Method: DELETE
+            Auth:
+              Authorizer: NONE
+
+  ConceptGetLinkedVideosFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "${ResourcePrefix}-concept-get-linked-videos"
+      CodeUri: lambdas/functions/concepts/get-linked-videos/
+      Handler: app.lambda_handler
+      Environment:
+        Variables:
+          MAIN_TABLE_NAME: !Sub "${TablePrefix}-main"
+          USER_TABLE_NAME: !Sub "${TablePrefix}-users"
+          USER_POOL_ID: !Ref UserPool
+          USER_POOL_CLIENT_ID: !Ref UserPoolClient
+          AWS_ENDPOINT_URL: !If [IsLocal, "http://localhost:8000", !Ref "AWS::NoValue"]
+          S3_ENDPOINT_URL: !If [IsLocal, "http://localhost:4566", !Ref "AWS::NoValue"]
+          VIDEO_BUCKET_NAME: !Ref VideoBucket
+          DATASOURCES_BUCKET_NAME: !Ref DatasourcesBucket
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref MainTable
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ValtheraAPI
+            Path: /api/projects/{projectId}/concepts/{conceptId}/videos
+            Method: GET
+            Auth:
+              Authorizer: NONE
+
+  ConceptGenerateVideoUrlFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "${ResourcePrefix}-concept-generate-video-url"
+      CodeUri: lambdas/functions/concepts/generate-video-url/
+      Handler: app.lambda_handler
+      Environment:
+        Variables:
+          MAIN_TABLE_NAME: !Sub "${TablePrefix}-main"
+          USER_TABLE_NAME: !Sub "${TablePrefix}-users"
+          VIDEO_BUCKET_NAME: !Ref VideoBucket
+          USER_POOL_ID: !Ref UserPool
+          USER_POOL_CLIENT_ID: !Ref UserPoolClient
+          AWS_ENDPOINT_URL: !If [IsLocal, "http://localhost:8000", !Ref "AWS::NoValue"]
+          S3_ENDPOINT_URL: !If [IsLocal, "http://localhost:4566", !Ref "AWS::NoValue"]
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref MainTable
+        - S3ReadPolicy:
+            BucketName: !Ref VideoBucket
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ValtheraAPI
+            Path: /api/behaviors/videos/{videoId}/url
+            Method: GET
+
+  ConceptStreamVideoFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "${ResourcePrefix}-concept-stream-video"
+      CodeUri: lambdas/functions/concepts/stream-video/
+      Handler: app.lambda_handler
+      Environment:
+        Variables:
+          MAIN_TABLE_NAME: !Sub "${TablePrefix}-main"
+          USER_TABLE_NAME: !Sub "${TablePrefix}-users"
+          VIDEO_BUCKET_NAME: !Ref VideoBucket
+          USER_POOL_ID: !Ref UserPool
+          USER_POOL_CLIENT_ID: !Ref UserPoolClient
+          AWS_ENDPOINT_URL: !If [IsLocal, "http://localhost:8000", !Ref "AWS::NoValue"]
+          S3_ENDPOINT_URL: !If [IsLocal, "http://localhost:4566", !Ref "AWS::NoValue"]
+          AWS_SAM_LOCAL: !If [IsLocal, "true", !Ref "AWS::NoValue"]
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref MainTable
+        - S3ReadPolicy:
+            BucketName: !Ref VideoBucket
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ValtheraAPI
+            Path: /api/behaviors/videos/{videoId}/stream
+            Method: GET
+
+  ConceptOptimizeVideoFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "${ResourcePrefix}-concept-optimize-video"
+      CodeUri: lambdas/functions/concepts/optimize-video/
+      Handler: app.lambda_handler
+      Environment:
+        Variables:
+          MAIN_TABLE_NAME: !Sub "${TablePrefix}-main"
+          USER_TABLE_NAME: !Sub "${TablePrefix}-users"
+          VIDEO_BUCKET_NAME: !Ref VideoBucket
+          USER_POOL_ID: !Ref UserPool
+          USER_POOL_CLIENT_ID: !Ref UserPoolClient
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref MainTable
+        - S3CrudPolicy:
+            BucketName: !Ref VideoBucket
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ValtheraAPI
+            Path: /api/behaviors/videos/{videoId}/optimize
+            Method: POST
+
+  # Lambda Functions - Data Sources Domain
+  DatasourceGetFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "${ResourcePrefix}-datasource-get"
+      CodeUri: lambdas/functions/datasources/get/
+      Handler: app.lambda_handler
+      Environment:
+        Variables:
+          MAIN_TABLE_NAME: !Sub "${TablePrefix}-main"
+          USER_TABLE_NAME: !Sub "${TablePrefix}-users"
+          USER_POOL_ID: !Ref UserPool
+          USER_POOL_CLIENT_ID: !Ref UserPoolClient
+          AWS_ENDPOINT_URL: !If [IsLocal, "http://localhost:8000", !Ref "AWS::NoValue"]
+          S3_ENDPOINT_URL: !If [IsLocal, "http://localhost:4566", !Ref "AWS::NoValue"]
+          ENVIRONMENT: !Ref Environment
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref MainTable
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ValtheraAPI
+            Path: /api/datasources
+            Method: GET
+
+  DatasourceCreateFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "${ResourcePrefix}-datasource-create"
+      CodeUri: lambdas/functions/datasources/create/
+      Handler: app.lambda_handler
+      Environment:
+        Variables:
+          MAIN_TABLE_NAME: !Sub "${TablePrefix}-main"
+          USER_TABLE_NAME: !Sub "${TablePrefix}-users"
+          VIDEO_BUCKET_NAME: !Ref VideoBucket
+          DATASOURCES_BUCKET_NAME: !Ref DatasourcesBucket
+          USER_POOL_ID: !Ref UserPool
+          USER_POOL_CLIENT_ID: !Ref UserPoolClient
+          AWS_ENDPOINT_URL: !If [IsLocal, "http://localhost:8000", !Ref "AWS::NoValue"]
+          S3_ENDPOINT_URL: !If [IsLocal, "http://localhost:4566", !Ref "AWS::NoValue"]
+          ENVIRONMENT: !Ref Environment
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref MainTable
+        - S3CrudPolicy:
+            BucketName: !Ref VideoBucket
+        - S3CrudPolicy:
+            BucketName: !Ref DatasourcesBucket
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ValtheraAPI
+            Path: /api/datasources
+            Method: POST
+
+  DatasourceGetByIdFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "${ResourcePrefix}-datasource-get-by-id"
+      CodeUri: lambdas/functions/datasources/get-by-id/
+      Handler: app.lambda_handler
+      Environment:
+        Variables:
+          MAIN_TABLE_NAME: !Sub "${TablePrefix}-main"
+          USER_TABLE_NAME: !Sub "${TablePrefix}-users"
+          USER_POOL_ID: !Ref UserPool
+          USER_POOL_CLIENT_ID: !Ref UserPoolClient
+          AWS_ENDPOINT_URL: !If [IsLocal, "http://localhost:8000", !Ref "AWS::NoValue"]
+          S3_ENDPOINT_URL: !If [IsLocal, "http://localhost:4566", !Ref "AWS::NoValue"]
+          ENVIRONMENT: !Ref Environment
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref MainTable
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ValtheraAPI
+            Path: /api/datasources/{datasourceId}
+            Method: GET
+
+  DatasourceDeleteFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "${ResourcePrefix}-datasource-delete"
+      CodeUri: lambdas/functions/datasources/delete/
+      Handler: app.lambda_handler
+      Environment:
+        Variables:
+          MAIN_TABLE_NAME: !Sub "${TablePrefix}-main"
+          USER_TABLE_NAME: !Sub "${TablePrefix}-users"
+          VIDEO_BUCKET_NAME: !Ref VideoBucket
+          USER_POOL_ID: !Ref UserPool
+          USER_POOL_CLIENT_ID: !Ref UserPoolClient
+          AWS_ENDPOINT_URL: !If [IsLocal, "http://localhost:8000", !Ref "AWS::NoValue"]
+          S3_ENDPOINT_URL: !If [IsLocal, "http://localhost:4566", !Ref "AWS::NoValue"]
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref MainTable
+        - S3CrudPolicy:
+            BucketName: !Ref VideoBucket
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ValtheraAPI
+            Path: /api/datasources/{datasourceId}
+            Method: DELETE
+
+  DatasourceUploadFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "${ResourcePrefix}-datasource-upload"
+      CodeUri: lambdas/functions/datasources/upload-file/
+      Handler: app.lambda_handler
+      Timeout: 900
+      MemorySize: 1024
+      Environment:
+        Variables:
+          MAIN_TABLE_NAME: !Sub "${TablePrefix}-main"
+          USER_TABLE_NAME: !Sub "${TablePrefix}-users"
+          VIDEO_BUCKET_NAME: !Ref VideoBucket
+          USER_POOL_ID: !Ref UserPool
+          USER_POOL_CLIENT_ID: !Ref UserPoolClient
+          VIDEO_OPTIMIZATION_ENABLED: "true"
+          MAX_LAMBDA_VIDEO_SIZE: "52428800"
+          AWS_ENDPOINT_URL: !If [IsLocal, "http://localhost:8000", !Ref "AWS::NoValue"]
+          S3_ENDPOINT_URL: !If [IsLocal, "http://localhost:4566", !Ref "AWS::NoValue"]
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref MainTable
+        - S3CrudPolicy:
+            BucketName: !Ref VideoBucket
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ValtheraAPI
+            Path: /api/datasources/{datasourceId}/upload
+            Method: POST
+
+  DatasourceGeneratePresignedUrlFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "${ResourcePrefix}-datasource-generate-presigned-url"
+      CodeUri: lambdas/functions/datasources/generate-presigned-url/
+      Handler: app.lambda_handler
+      Environment:
+        Variables:
+          MAIN_TABLE_NAME: !Sub "${TablePrefix}-main"
+          USER_TABLE_NAME: !Sub "${TablePrefix}-users"
+          VIDEO_BUCKET_NAME: !Ref VideoBucket
+          DATASOURCES_BUCKET_NAME: !Ref DatasourcesBucket
+          USER_POOL_ID: !Ref UserPool
+          USER_POOL_CLIENT_ID: !Ref UserPoolClient
+          AWS_ENDPOINT_URL: !If [IsLocal, "http://localhost:8000", !Ref "AWS::NoValue"]
+          S3_ENDPOINT_URL: !If [IsLocal, "http://localhost:4566", !Ref "AWS::NoValue"]
+          ENVIRONMENT: !Ref Environment
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref MainTable
+        - S3CrudPolicy:
+            BucketName: !Ref VideoBucket
+        - S3CrudPolicy:
+            BucketName: !Ref DatasourcesBucket
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ValtheraAPI
+            Path: /api/datasources/{datasourceId}/upload-url
+            Method: POST
+
+  DatasourceConfirmUploadFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "${ResourcePrefix}-datasource-confirm-upload"
+      CodeUri: lambdas/functions/datasources/confirm-upload/
+      Handler: app.lambda_handler
+      Timeout: 900
+      MemorySize: 1024
+      Environment:
+        Variables:
+          MAIN_TABLE_NAME: !Sub "${TablePrefix}-main"
+          USER_TABLE_NAME: !Sub "${TablePrefix}-users"
+          VIDEO_BUCKET_NAME: !Ref VideoBucket
+          DATASOURCES_BUCKET_NAME: !Ref DatasourcesBucket
+          USER_POOL_ID: !Ref UserPool
+          USER_POOL_CLIENT_ID: !Ref UserPoolClient
+          VIDEO_OPTIMIZATION_ENABLED: "true"
+          MAX_LAMBDA_VIDEO_SIZE: "52428800"
+          AWS_ENDPOINT_URL: !If [IsLocal, "http://localhost:8000", !Ref "AWS::NoValue"]
+          S3_ENDPOINT_URL: !If [IsLocal, "http://localhost:4566", !Ref "AWS::NoValue"]
+          ENVIRONMENT: !Ref Environment
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref MainTable
+        - S3CrudPolicy:
+            BucketName: !Ref VideoBucket
+        - S3CrudPolicy:
+            BucketName: !Ref DatasourcesBucket
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ValtheraAPI
+            Path: /api/datasources/{datasourceId}/confirm-upload
+            Method: POST
+
+  DatasourceDeleteFileFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "${ResourcePrefix}-datasource-delete-file"
+      CodeUri: lambdas/functions/datasources/delete-file/
+      Handler: app.lambda_handler
+      Environment:
+        Variables:
+          MAIN_TABLE_NAME: !Sub "${TablePrefix}-main"
+          USER_TABLE_NAME: !Sub "${TablePrefix}-users"
+          VIDEO_BUCKET_NAME: !Ref VideoBucket
+          USER_POOL_ID: !Ref UserPool
+          USER_POOL_CLIENT_ID: !Ref UserPoolClient
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref MainTable
+        - S3CrudPolicy:
+            BucketName: !Ref VideoBucket
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ValtheraAPI
+            Path: /api/datasources/{datasourceId}/files/{fileId}
+            Method: DELETE
+
+  # Lambda Functions - Data Domain
+  VideoCreateFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "${ResourcePrefix}-video-create"
+      CodeUri: lambdas/functions/data/create/
+      Handler: app.lambda_handler
+      Environment:
+        Variables:
+          MAIN_TABLE_NAME: !Sub "${TablePrefix}-main"
+          VIDEO_TABLE_NAME: !Ref VideoTable
+          VIDEO_BUCKET_NAME: !Ref VideoBucket
+          VIDEO_PROCESSOR_QUEUE_URL: !Ref VideoProcessorQueue
+          USER_POOL_ID: !Ref UserPool
+          USER_POOL_CLIENT_ID: !Ref UserPoolClient
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref MainTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref VideoTable
+        - S3CrudPolicy:
+            BucketName: !Ref VideoBucket
+        - SQSSendMessagePolicy:
+            QueueName: !GetAtt VideoProcessorQueue.QueueName
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ValtheraAPI
+            Path: /api/videos
+            Method: POST
+
+  # Projects Functions
+  ProjectCreateFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "${ResourcePrefix}-project-create"
+      CodeUri: lambdas/functions/projects/create/
+      Handler: app.lambda_handler
+      Environment:
+        Variables:
+          MAIN_TABLE_NAME: !Sub "${TablePrefix}-main"
+          USER_TABLE_NAME: !Sub "${TablePrefix}-users"
+          USER_POOL_ID: !Ref UserPool
+          USER_POOL_CLIENT_ID: !Ref UserPoolClient
+          AWS_ENDPOINT_URL: !If [IsLocal, "http://localhost:8000", !Ref "AWS::NoValue"]
+          S3_ENDPOINT_URL: !If [IsLocal, "http://localhost:4566", !Ref "AWS::NoValue"]
+          ENVIRONMENT: !Ref Environment
+          ALLOW_UNAUTHENTICATED_LOCAL: !If [IsLocal, "true", !Ref "AWS::NoValue"]
+          LOCAL_DEFAULT_USER_ID: !If [IsLocal, "local-dev-user", !Ref "AWS::NoValue"]
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref MainTable
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ValtheraAPI
+            Path: /api/projects
+            Method: POST
+            Auth:
+              Authorizer: NONE
+
+  ProjectGetFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "${ResourcePrefix}-project-get"
+      CodeUri: lambdas/functions/projects/get/
+      Handler: app.lambda_handler
+      Environment:
+        Variables:
+          MAIN_TABLE_NAME: !Sub "${TablePrefix}-main"
+          USER_TABLE_NAME: !Sub "${TablePrefix}-users"
+          USER_POOL_ID: !Ref UserPool
+          USER_POOL_CLIENT_ID: !Ref UserPoolClient
+          AWS_ENDPOINT_URL: !If [IsLocal, "http://localhost:8000", !Ref "AWS::NoValue"]
+          S3_ENDPOINT_URL: !If [IsLocal, "http://localhost:4566", !Ref "AWS::NoValue"]
+          ENVIRONMENT: !Ref Environment
+          ALLOW_UNAUTHENTICATED_LOCAL: !If [IsLocal, "true", !Ref "AWS::NoValue"]
+          LOCAL_DEFAULT_USER_ID: !If [IsLocal, "local-dev-user", !Ref "AWS::NoValue"]
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref MainTable
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ValtheraAPI
+            Path: /api/projects
+            Method: GET
+            Auth:
+              Authorizer: NONE
+
+  ProjectGetByIdFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "${ResourcePrefix}-project-get-by-id"
+      CodeUri: lambdas/functions/projects/get-by-id/
+      Handler: app.lambda_handler
+      Environment:
+        Variables:
+          MAIN_TABLE_NAME: !Sub "${TablePrefix}-main"
+          USER_TABLE_NAME: !Sub "${TablePrefix}-users"
+          USER_POOL_ID: !Ref UserPool
+          USER_POOL_CLIENT_ID: !Ref UserPoolClient
+          AWS_ENDPOINT_URL: !If [IsLocal, "http://localhost:8000", !Ref "AWS::NoValue"]
+          S3_ENDPOINT_URL: !If [IsLocal, "http://localhost:4566", !Ref "AWS::NoValue"]
+          ENVIRONMENT: !Ref Environment
+          ALLOW_UNAUTHENTICATED_LOCAL: !If [IsLocal, "true", !Ref "AWS::NoValue"]
+          LOCAL_DEFAULT_USER_ID: !If [IsLocal, "local-dev-user", !Ref "AWS::NoValue"]
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref MainTable
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ValtheraAPI
+            Path: /api/projects/{projectId}
+            Method: GET
+            Auth:
+              Authorizer: NONE
+
+  ProjectUpdateFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "${ResourcePrefix}-project-update"
+      CodeUri: lambdas/functions/projects/update/
+      Handler: app.lambda_handler
+      Environment:
+        Variables:
+          MAIN_TABLE_NAME: !Sub "${TablePrefix}-main"
+          USER_TABLE_NAME: !Sub "${TablePrefix}-users"
+          USER_POOL_ID: !Ref UserPool
+          USER_POOL_CLIENT_ID: !Ref UserPoolClient
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref MainTable
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ValtheraAPI
+            Path: /api/projects/{projectId}
+            Method: PUT
+            Auth:
+              Authorizer: NONE
+
+  ProjectDeleteFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "${ResourcePrefix}-project-delete"
+      CodeUri: lambdas/functions/projects/delete/
+      Handler: app.lambda_handler
+      Environment:
+        Variables:
+          MAIN_TABLE_NAME: !Sub "${TablePrefix}-main"
+          USER_TABLE_NAME: !Sub "${TablePrefix}-users"
+          USER_POOL_ID: !Ref UserPool
+          USER_POOL_CLIENT_ID: !Ref UserPoolClient
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref MainTable
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ValtheraAPI
+            Path: /api/projects/{projectId}
+            Method: DELETE
+            Auth:
+              Authorizer: NONE
+
+  # Video Processor Function (SQS Trigger)
+  VideoProcessorFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "${ResourcePrefix}-video-processor"
+      CodeUri: containers/video-processor/
+      Handler: worker.lambda_handler
+      Environment:
+        Variables:
+          MAIN_TABLE_NAME: !Sub "${TablePrefix}-main"
+          VIDEO_TABLE_NAME: !Ref VideoTable
+          VIDEO_BUCKET_NAME: !Ref VideoBucket
+          USER_POOL_ID: !Ref UserPool
+          USER_POOL_CLIENT_ID: !Ref UserPoolClient
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref MainTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref VideoTable
+        - S3CrudPolicy:
+            BucketName: !Ref VideoBucket
+      Events:
+        SQSEvent:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt VideoProcessorQueue.Arn
+            BatchSize: 1
+
+  ConceptVideoProxyFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: lambdas/functions/concepts/video-proxy/
+      Handler: app.lambda_handler
+      Runtime: python3.9
+      Timeout: 30
+      MemorySize: 512
+      Environment:
+        Variables:
+          VIDEO_BUCKET_NAME: !Ref VideoBucket
+          S3_ENDPOINT_URL: !If [IsLocal, "http://localhost:4566", !Ref "AWS::NoValue"]
+          AWS_ENDPOINT_URL: !If [IsLocal, "http://localhost:8000", !Ref "AWS::NoValue"]
+      Events:
+        VideoProxy:
+          Type: Api
+          Properties:
+            Path: /api/videos/{videoId}
+            Method: GET
+            Auth:
+              Authorizer: NONE
+            RestApiId: !Ref ValtheraAPI
+        VideoProxyConcepts:
+          Type: Api
+          Properties:
+            Path: /api/concepts/videos/{proxy+}
+            Method: GET
+            Auth:
+              Authorizer: NONE
+            RestApiId: !Ref ValtheraAPI
+
+  # CORS OPTIONS Handler
+  CorsOptionsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "${ResourcePrefix}-cors-options"
+      CodeUri: lambdas/options_handler/
+      Handler: options_handler.lambda_handler
+      Environment:
+        Variables:
+          ENVIRONMENT: !Ref Environment
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ValtheraAPI
+            Path: /{proxy+}
+            Method: OPTIONS
+            Auth:
+              Authorizer: NONE
+
+Outputs:
+  ApiUrl:
+    Description: "API Gateway endpoint URL"
+    Value: !Sub "https://${ValtheraAPI}.execute-api.${AWS::Region}.amazonaws.com/${Environment}"
+    Export:
+      Name: !Sub "${ResourcePrefix}-api-url"
+
+  UserTableName:
+    Description: "User Table Name"
+    Value: !Ref UserTable
+    Export:
+      Name: !Sub "${ResourcePrefix}-user-table-name"
+
+  MainTableName:
+    Description: "Main Table Name"
+    Value: !Ref MainTable
+    Export:
+      Name: !Sub "${ResourcePrefix}-main-table-name"
+
+  VideoTableName:
+    Description: "Video Table Name"
+    Value: !Ref VideoTable
+    Export:
+      Name: !Sub "${ResourcePrefix}-video-table-name"
+
+  VideoBucketName:
+    Description: "Video Bucket Name"
+    Value: !Ref VideoBucket
+    Export:
+      Name: !Sub "${ResourcePrefix}-video-bucket-name"
+
+  DatasourcesBucketName:
+    Description: "Datasources Bucket Name"
+    Value: !Ref DatasourcesBucket
+    Export:
+      Name: !Sub "${ResourcePrefix}-datasources-bucket-name"
+
+  UserPoolId:
+    Description: "Cognito User Pool ID"
+    Value: !Ref UserPool
+    Export:
+      Name: !Sub "${ResourcePrefix}-user-pool-id"
+
+  UserPoolClientId:
+    Description: "Cognito User Pool Client ID"
+    Value: !Ref UserPoolClient
+    Export:
+      Name: !Sub "${ResourcePrefix}-user-pool-client-id" 
