@@ -1,85 +1,76 @@
-# Valthera: Language-Guided Video Intelligence
+# Valthera
 
-**Valthera** is an open-source platform for building intelligent video classifiers using natural language and advanced computer vision. Describe a concept like "robot completes a task" or "person enters restricted zone," and Valthera guides you through building, training, and deploying a model — using your own video data.
+**Valthera** is an open-source system for building your own computer vision stack — including software, hardware, and AI tools.
 
-Valthera removes the barriers of labeled datasets, complex infrastructure, and ML expertise. It is cloud-native, GPU-accelerated, and designed for those pushing the frontier of video perception, robotics, and intelligent systems.
+You can:
 
-## What Valthera Offers
+* Build a stereo depth camera using our hardware designs
+* Run video through a GPU-based processing pipeline
+* Use a built-in agent to help train your own video classifiers
+* Deploy models to the cloud or on local hardware like Jetson Nano
 
-Valthera integrates a full-stack video intelligence pipeline:
+Everything is open-source. No need for labeled datasets or ML expertise.
 
-- **Video Processing** using V-JEPA embeddings for temporal understanding
-- **LLM-Powered Agent** to define visual concepts and automate training
-- **Custom Classifier Training** optimized for few-shot learning from real video
-- **Open Infrastructure** with AWS Lambda, S3, DynamoDB, and containerized compute
-- **Optional RealSense Support** for edge video capture and live feedback
+---
 
-Imagine a robotics engineer training a task detector with a single camera feed and a few natural language prompts. Or a healthcare team deploying a patient-movement model with zero data science support. Valthera enables this — today.
+## What's Included
 
-## Why This Matters
+Valthera comes with:
 
-Video understanding is one of the most complex and impactful frontiers in AI. But today, most teams are blocked by high labeling costs, infrastructure complexity, and the ML expertise gap.
+**1. Software**
 
-Valthera closes that gap with an LLM-guided pipeline that brings video intelligence to everyone — researchers, developers, and domain experts — without sacrificing power or flexibility.
+* Video processing with V-JEPA embeddings
+* LLM-powered agent to help define and train classifiers
+* Frontend app to view videos, define concepts, and monitor models
+* Backend API and storage using AWS tools (Lambda, S3, DynamoDB)
+* Local setup scripts for running everything on your machine
+
+**2. Hardware**
+
+* Open-source stereo vision rig with 3D-printable parts
+* Jetson Nano-compatible GPU processing unit
+* Camera calibration, wiring, and setup instructions
+* Support for USB cameras and live video capture
+
+---
 
 ## Use Cases
 
-- **Robotics**: Detect task transitions, tool use, or failure conditions from video
-- **Lab Automation**: Track experiment protocols, equipment status, or safety compliance
-- **Retail**: Analyze customer movement, engagement, or checkout efficiency
-- **Healthcare**: Monitor mobility, bed exits, or equipment usage
-- **Creative AI**: Classify motion in dance, sport, or performance without manual labels
+You can use Valthera to:
 
-## Agent Workflow
+* Train a robot to detect when a task is complete
+* Monitor lab equipment or track experiment steps
+* Watch for safety events in a room or workspace
+* Classify movement patterns in video without writing code
 
-At the heart of Valthera is a LangGraph-based agent that coordinates model creation:
+---
 
-1. You describe what you want to detect in plain language
-2. The agent recommends relevant data, masking, and training strategy
-3. It launches training and exposes the model as a usable endpoint
-4. You can review model behavior and iterate using natural feedback
+## How It Works
 
-This makes concept learning interactive, explainable, and highly adaptable — even for non-technical users.
+1. **Upload or stream a video**
+2. **Tell the agent** what kind of event or behavior you want to detect
+3. **Train a classifier** based on your concept
+4. **Deploy the model** and run predictions on new video
 
-## Technical Stack
+The agent helps at every step. You can run this locally or in the cloud.
 
-| Layer      | Technology                                 |
-|------------|-------------------------------------------|
-| Frontend   | React with TypeScript                     |
-| Backend    | AWS Lambda via SAM                        |
-| Storage    | S3 (video) and DynamoDB (metadata)       |
-| Embeddings | V-JEPA video encoder in PyTorch containers |
-| Agent      | LangGraph LLM workflows                   |
-| Infra      | CDK + Docker + local emulation tools     |
+---
 
-All services are containerized and runnable locally or in production environments.
+## Project Layout
 
-## Technical Challenges We Are Exploring
+```
+valthera/
+├── app/           # Frontend UI
+├── agent/         # LangGraph agent
+├── lambdas/       # Backend functions
+├── containers/    # Video processing
+├── devices/       # Camera support (Jetson, RealSense)
+├── hardware/      # CAD files, setup guides, diagrams
+├── scripts/       # Dev tools and local setup
+└── packages/      # Shared Python code
+```
 
-We are actively researching and building solutions to these cutting-edge problems:
-
-### Visual Concept Learning
-
-- Modeling temporal context with minimal supervision
-- Learning from masked and sparse data in real video
-- Aligning natural language with complex visual behavior
-- Handling occlusion, motion blur, and domain drift
-
-### Agent Intelligence
-
-- Integrating active learning and error feedback loops
-- Prompt engineering for training supervision
-- Explaining classifier behavior in human terms
-- Automated evaluation and curriculum design
-
-### Scalable Infrastructure
-
-- Streaming inference from live camera feeds
-- Real-time deployment on Jetson Nano and Coral TPU
-- Auto-scaling training pipelines for large datasets
-- Cross-device synchronization and multi-user support
-
-These are research-grade problems with opportunities for publication, real-world impact, and collaborative breakthroughs.
+---
 
 ## Getting Started
 
@@ -89,51 +80,40 @@ cd valthera
 ./valthera-local start
 ```
 
-This spins up:
+This sets up:
 
-- Frontend: [http://localhost:5173](http://localhost:5173)
-- API Gateway: [http://localhost:3000](http://localhost:3000)
-- Local S3, DynamoDB, Cognito
-- LangGraph agent backend
-- V-JEPA processing container
+* React app at [http://localhost:5173](http://localhost:5173)
+* API backend at [http://localhost:3000](http://localhost:3000)
+* Local S3, DynamoDB, and Cognito
+* Docker containers for V-JEPA and agent
 
-See [docs/](./docs) for full instructions.
+To build the stereo camera, check the `hardware/` folder for CAD files and setup steps.
 
-## Project Structure
+---
 
-```
-valthera/
-├── app/               # React frontend
-├── agent/             # LangGraph workflows
-├── lambdas/           # Serverless API functions
-├── containers/        # Video processing and embedding
-├── devices/           # RealSense capture and edge support
-├── packages/          # Shared utilities
-├── scripts/           # Dev tooling and setup
-└── template.yaml      # SAM infrastructure template
-```
+## Want to Help?
 
-## Contribute
+We’re looking for people to:
 
-We are inviting collaborators who want to shape the future of intelligent video systems. If you are interested in:
+* Improve the video processing pipeline
+* Contribute to the LangGraph agent
+* Help test and improve the hardware design
+* Add new model training tools
+* Use Valthera in real robotics or video projects
 
-- Applying few-shot learning to real-world video
-- Building agent workflows that reason over visual data
-- Designing human-in-the-loop tools for perception
-- Deploying scalable pipelines to edge or cloud environments
+Start with [CONTRIBUTING.md](./CONTRIBUTING.md) or open an issue with ideas.
 
-... then Valthera is an ideal platform.
-
-Start with [CONTRIBUTING.md](./CONTRIBUTING.md) or join a discussion in [Issues](https://github.com/valthera/valthera/issues).
+---
 
 ## License
 
-Valthera is open source under the Apache 2.0 license.
+* Software: Apache 2.0
+* Hardware: CERN-OHL-W v2
 
-## Help Build the Future of Perception
+---
 
-We believe the next frontier in AI is not just about language or images, but physical intelligence — the ability to see, interpret, and respond to the world through video.
+## Summary
 
-Valthera is a foundation for that future.
+Valthera gives you the full stack for building custom video classifiers — from the camera to the model. It’s open-source, runs locally or in the cloud, and is designed to be simple to use and easy to modify.
 
-Join us to explore what's possible when language, vision, and intelligent systems converge — and help build the open infrastructure that powers it.
+No hype. Just tools that work.
