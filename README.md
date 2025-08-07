@@ -1,83 +1,117 @@
 # Valthera
 
-A video processing and AI-powered application for concept learning and video analysis.
+**Valthera** is an open-source system for building your own computer vision stack — including software, hardware, and AI tools.
 
-## Quick Start for New Developers
+You can:
 
-### Prerequisites
+* Build a stereo depth camera using our hardware designs
+* Run video through a GPU-based processing pipeline
+* Use a built-in agent to help train your own video classifiers
+* Deploy models to the cloud or on local hardware like Jetson Nano
 
-- **Node.js** (v18 or higher)
-- **Docker** and **Docker Compose**
-- **pnpm** (recommended) or npm
-- **AWS CLI** (for local development)
+Everything is open-source. No need for labeled datasets or ML expertise.
 
-### Getting Started
+---
 
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd valthera
-   ```
+## What's Included
 
-2. **Start everything with one command**
-   ```bash
-   ./valthera-local start
-   ```
+Valthera comes with:
 
-This single command will:
-- Start all Docker services (DynamoDB, LocalStack, SQS, Cognito)
-- Set up the environment automatically
-- Start the React development server
-- Start the SAM API server
+**1. Software**
 
-The app will be available at `http://localhost:5173`
+* Video processing with V-JEPA embeddings
+* LLM-powered agent to help define and train classifiers
+* Frontend app to view videos, define concepts, and monitor models
+* Backend API and storage using AWS tools (Lambda, S3, DynamoDB)
+* Local setup scripts for running everything on your machine
 
-### Authentication
+**2. Hardware**
 
-When prompted for SMS verification, use the code: **123123**
+* Open-source stereo vision rig with 3D-printable parts
+* Jetson Nano-compatible GPU processing unit
+* Camera calibration, wiring, and setup instructions
+* Support for USB cameras and live video capture
 
-### Development Workflow
+---
 
-- **Frontend**: React + TypeScript + Vite
-- **Backend**: AWS Lambda functions (in `lambdas/`)
-- **Database**: DynamoDB
-- **Storage**: S3
-- **Authentication**: Cognito
-- **Video Processing**: Custom worker containers
+## Use Cases
 
-### Useful Commands
+You can use Valthera to:
 
-```bash
-# Start everything
-./valthera-local start
+* Train a robot to detect when a task is complete
+* Monitor lab equipment or track experiment steps
+* Watch for safety events in a room or workspace
+* Classify movement patterns in video without writing code
 
-# Restart all services
-./valthera-local restart
+---
 
-# Complete rebuild and start
-./valthera-local rebuild
+## How It Works
 
-# Stop all services
-./valthera-local stop
+1. **Upload or stream a video**
+2. **Tell the agent** what kind of event or behavior you want to detect
+3. **Train a classifier** based on your concept
+4. **Deploy the model** and run predictions on new video
 
-# View status
-./valthera-local status
+The agent helps at every step. You can run this locally or in the cloud.
 
-# Clean up everything
-./scripts/clean.sh
+---
+
+## Project Layout
+
+```
+valthera/
+├── app/           # Frontend UI
+├── agent/         # LangGraph agent
+├── lambdas/       # Backend functions
+├── containers/    # Video processing
+├── devices/       # Camera support (Jetson, RealSense)
+├── hardware/      # CAD files, setup guides, diagrams
+├── scripts/       # Dev tools and local setup
+└── packages/      # Shared Python code
 ```
 
-### Project Structure
+---
 
-- `app/` - React frontend application
-- `lambdas/` - AWS Lambda functions
-- `containers/` - Docker containers for video processing
-- `packages/` - Shared Python packages
-- `agent/` - LangGraph agent components
+## Getting Started
 
-### Troubleshooting
+```bash
+git clone https://github.com/valthera/valthera.git
+cd valthera
+./valthera-local start
+```
 
-1. **Port conflicts**: Make sure ports 8000, 4566, 9324, 9239, and 5173 are available
-2. **Docker issues**: Ensure Docker is running and you have sufficient resources
-3. **AWS CLI**: Make sure AWS CLI is installed and configured
-4. **Node modules**: If you encounter issues, try `rm -rf node_modules && pnpm install`
+This sets up:
+
+* React app at [http://localhost:5173](http://localhost:5173)
+* API backend at [http://localhost:3000](http://localhost:3000)
+* Local S3, DynamoDB, and Cognito
+* Docker containers for V-JEPA and agent
+
+To build the stereo camera, check the `hardware/` folder for CAD files and setup steps.
+
+---
+
+## Want to Help?
+
+We’re looking for people to:
+
+* Improve the video processing pipeline
+* Contribute to the LangGraph agent
+* Help test and improve the hardware design
+* Add new model training tools
+* Use Valthera in real robotics or video projects
+
+Start with [CONTRIBUTING.md](./CONTRIBUTING.md) or open an issue with ideas.
+
+---
+
+## License
+
+* Software: Apache 2.0
+* Hardware: CERN-OHL-W v2
+
+---
+
+## Summary
+
+Valthera gives you the full stack for building custom video classifiers — from the camera to the model. It’s open-source, runs locally or in the cloud, and is designed to be simple to use and easy to modify.
