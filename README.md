@@ -77,15 +77,62 @@ valthera/
 ```bash
 git clone https://github.com/valthera/valthera.git
 cd valthera
+
+# Start backend services (Docker containers, SAM API, etc.)
 ./valthera-local start
+
+# In a new terminal, start the React app
+cd app && pnpm run dev
 ```
 
 This sets up:
 
-* React app at [http://localhost:5173](http://localhost:5173)
-* API backend at [http://localhost:3000](http://localhost:3000)
-* Local S3, DynamoDB, and Cognito
-* Docker containers for V-JEPA and agent
+* **Backend Services** (started by `valthera-local start`):
+  * API backend at [http://localhost:3000](http://localhost:3000)
+  * Local S3, DynamoDB, and Cognito
+  * Docker containers for V-JEPA and agent
+
+* **Frontend App** (started manually):
+  * React app at [http://localhost:5173](http://localhost:5173)
+
+### First Time Setup
+
+If this is your first time running the project:
+
+1. **Start backend services:**
+   ```bash
+   ./valthera-local start
+   ```
+   This will:
+   - Start all Docker containers
+   - Set up AWS resources (DynamoDB tables, S3 buckets, SQS queues)
+   - Configure Cognito with test user
+   - Start SAM API
+   - Generate environment files if missing
+
+2. **Start React app:**
+   ```bash
+   cd app && pnpm run dev
+   ```
+   This will:
+   - Install dependencies if needed
+   - Start Vite development server
+   - Serve the React app
+
+### Test Credentials
+
+After setup, you can log in with:
+- **Email**: test@valthera.com
+- **Password**: TestPass123!
+
+### Troubleshooting
+
+If you encounter issues:
+
+- **Check service status:** `./valthera-local status`
+- **View logs:** `tail -f logs/sam.log` (backend) or check browser console (frontend)
+- **Restart services:** `./valthera-local restart`
+- **Port conflicts:** `./valthera-local check-ports`
 
 To build the stereo camera, check the `hardware/` folder for CAD files and setup steps.
 
