@@ -179,10 +179,8 @@ start_react_app() {
         return 1
     fi
     
-    # Check if port 5173 is available
-    if ! check_port_available "5173" "React App"; then
-        print_error "Cannot start React app - port 5173 is in use"
-        print_info "Try: ./valthera-local stop (to stop existing services)"
+    # Check if port 5173 is available and resolve conflicts
+    if ! check_and_resolve_port_conflicts "5173" "React App"; then
         return 1
     fi
     
@@ -232,10 +230,49 @@ start_sam_api() {
         return 0
     fi
     
-    # Check if port 3000 is available
-    if ! check_port_available "3000" "SAM API"; then
-        print_error "Cannot start SAM API - port 3000 is in use"
-        print_info "Try: ./valthera-local stop (to stop existing services)"
+    # Check if port 3000 is available and resolve conflicts
+    if ! check_and_resolve_port_conflicts "3000" "SAM API"; then
+        return 1
+    fi
+    
+    print_info "Starting SAM API..."
+    
+    # Create logs directory
+    mkdir -p logs
+    
+    # Start SAM API in background
+    nohup sam local start-api --env-vars env-local.json > logs/sam.log 2>&1 &
+    local sam_pid=$!
+    
+    store_pid "$sam_pid" "$SAM_PID_FILE"
+    print_success "SAM API started (PID: $sam_pid)"
+    print_info "  Logs: tail -f logs/sam.log"
+    
+    # Wait a moment to check if it started successfully  
+    sleep 3
+    if ! is_process_running "$sam_pid"; then
+        print_error "SAM API failed to start. Check logs/sam.log"
+        remove_pid_file "$SAM_PID_FILE"
+        return 1
+    fi
+}
+
+# Start SAM API with force mode (auto-kill conflicts)
+start_sam_api_force() {
+    local pid=$(get_stored_pid "$SAM_PID_FILE")
+    
+    if [ -n "$pid" ] && is_process_running "$pid"; then
+        print_info "SAM API already running (PID: $pid)"
+        return 0
+    fi
+    
+    if [ ! -f "template.yaml" ]; then
+        print_warning "SAM template.yaml not found. Skipping SAM API start."
+        return 0
+    fi
+    
+    # Check if port 3000 is available and auto-kill conflicts
+    if ! check_and_resolve_port_conflicts "3000" "SAM API" "true"; then
         return 1
     fi
     
@@ -288,6 +325,79 @@ check_port_available() {
     if lsof -ti :$port >/dev/null 2>&1; then
         print_warning "$service_name port $port is already in use"
         return 1
+    else
+        print_success "$service_name port $port is available"
+        return 0
+    fi
+}
+
+# Check and resolve port conflicts with user confirmation
+check_and_resolve_port_conflicts() {
+    local port=$1
+    local service_name=$2
+    local auto_kill=${3:-false}
+    
+    if lsof -ti :$port >/dev/null 2>&1; then
+        local pids=$(lsof -ti :$port)
+        local process_info=$(lsof -ti :$port | xargs ps -o pid,command -p 2>/dev/null || echo "Unknown process")
+        
+        print_warning "$service_name port $port is already in use"
+        print_info "Processes using port $port:"
+        echo "$process_info" | while read line; do
+            echo "  • $line"
+        done
+        
+        if [ "$auto_kill" = "true" ]; then
+            print_info "Auto-killing processes on port $port..."
+            for pid in $pids; do
+                if kill -0 "$pid" 2>/dev/null; then
+                    print_info "Killing process $pid..."
+                    kill "$pid" 2>/dev/null
+                    sleep 1
+                    if kill -0 "$pid" 2>/dev/null; then
+                        print_warning "Force killing process $pid..."
+                        kill -9 "$pid" 2>/dev/null
+                    fi
+                fi
+            done
+            sleep 2
+            if ! lsof -ti :$port >/dev/null 2>&1; then
+                print_success "Port $port is now available"
+                return 0
+            else
+                print_error "Failed to free port $port"
+                return 1
+            fi
+        else
+            echo ""
+            read -p "🚨 Kill processes using port $port? (y/n): " -n 1 -r
+            echo ""
+            if [[ $REPLY =~ ^[Yy]$ ]]; then
+                print_info "Killing processes on port $port..."
+                for pid in $pids; do
+                    if kill -0 "$pid" 2>/dev/null; then
+                        print_info "Killing process $pid..."
+                        kill "$pid" 2>/dev/null
+                        sleep 1
+                        if kill -0 "$pid" 2>/dev/null; then
+                            print_warning "Force killing process $pid..."
+                            kill -9 "$pid" 2>/dev/null
+                        fi
+                    fi
+                done
+                sleep 2
+                if ! lsof -ti :$port >/dev/null 2>&1; then
+                    print_success "Port $port is now available"
+                    return 0
+                else
+                    print_error "Failed to free port $port"
+                    return 1
+                fi
+            else
+                print_error "Cannot start $service_name - port $port is in use"
+                return 1
+            fi
+        fi
     else
         print_success "$service_name port $port is available"
         return 0
@@ -580,6 +690,69 @@ cmd_start() {
     
     # Start SAM API
     start_sam_api
+    
+    echo ""
+    print_success "🎉 Backend services started!"
+    print_info "📁 Application logs are in: logs/"
+    print_info "🚀 To start React app manually: cd app && pnpm run dev"
+    cmd_status
+}
+
+cmd_start_force() {
+    print_header "Starting Valthera Local Services (Force Mode)"
+    print_info "Force mode will automatically kill conflicting processes"
+    check_docker
+    
+    print_info "Starting Docker services..."
+    docker-compose up -d
+    
+    # Wait for core services
+    wait_for_service "http://localhost:8000" "DynamoDB"
+    wait_for_service "http://localhost:4566/_localstack/health" "LocalStack"
+    
+    # Setup resources
+    setup_dynamodb_tables
+    setup_s3_buckets
+    setup_sqs_queues
+    setup_datasources
+    
+    # Setup Cognito if container is running
+    print_info "Checking Cognito container status..."
+    if [ "$(get_container_status valthera-cognito-local)" = "running" ]; then
+        print_info "Cognito container is running, waiting for service to be ready..."
+        wait_for_service "http://localhost:9239" "Cognito-Local"
+        setup_cognito
+    else
+        print_warning "Cognito container is not running. Waiting for it to start..."
+        # Wait a bit more for the container to start
+        local cognito_attempts=0
+        while [ $cognito_attempts -lt 15 ] && [ "$(get_container_status valthera-cognito-local)" != "running" ]; do
+            sleep 2
+            cognito_attempts=$((cognito_attempts + 1))
+            echo -n "."
+        done
+        echo ""
+        
+        if [ "$(get_container_status valthera-cognito-local)" = "running" ]; then
+            print_success "Cognito container is now running"
+            wait_for_service "http://localhost:9239" "Cognito-Local"
+            setup_cognito
+        else
+            print_error "Cognito container failed to start. Check docker-compose logs."
+            print_info "You can try: docker-compose logs cognito-local"
+        fi
+    fi
+    
+    print_success "All AWS services started successfully!"
+    
+    # Start SAM API only (React app will be started manually)
+    print_subheader "Starting SAM API (Force Mode)"
+    
+    # Create logs directory
+    mkdir -p logs
+    
+    # Start SAM API with force mode
+    start_sam_api_force
     
     echo ""
     print_success "🎉 Backend services started!"
@@ -1193,6 +1366,7 @@ cmd_help() {
     echo ""
     echo -e "${BOLD}COMMANDS:${NC}"
     echo -e "    ${GREEN}start${NC}        Start backend services (Docker + SAM API)"
+    echo -e "    ${GREEN}start-force${NC}  Start backend services (auto-kill conflicts)"
     echo -e "    ${GREEN}stop${NC}         Stop backend services (keeps data)"
     echo -e "    ${GREEN}restart${NC}      Restart backend services"
     echo -e "    ${GREEN}destroy${NC}      Stop services and remove all data"
@@ -1208,11 +1382,13 @@ cmd_help() {
     echo -e "    ${GREEN}setup-cognito${NC} Manually setup Cognito (if auto-setup fails)"
     echo -e "    ${GREEN}test-cognito${NC}  Test Cognito setup and configuration"
     echo -e "    ${GREEN}install-deps${NC}  Install React app dependencies"
+    echo -e "    ${GREEN}check-ports${NC}   Check and resolve port conflicts"
     echo -e "    ${GREEN}clean${NC}        Clean up all resources (tables, buckets, queues)"
     echo -e "    ${GREEN}help${NC}         Show this help message"
     echo ""
     echo -e "${BOLD}EXAMPLES:${NC}"
     echo "    ./valthera-local start              # Start backend services"
+    echo "    ./valthera-local start-force        # Start with auto-kill conflicts"
     echo "    ./valthera-local rebuild            # Complete rebuild and start"
     echo "    ./valthera-local restart            # Restart backend services"
     echo "    ./valthera-local apps restart       # Restart just SAM API"
@@ -1220,6 +1396,7 @@ cmd_help() {
     echo "    ./valthera-local status             # Check what's running"
     echo "    ./valthera-local setup-cognito      # Manually setup Cognito"
     echo "    ./valthera-local install-deps       # Install React dependencies"
+    echo "    ./valthera-local check-ports        # Check and resolve port conflicts"
     echo "    ./valthera-local destroy            # Nuclear option - remove everything"
     echo ""
     echo -e "${BOLD}AWS SERVICES:${NC}"
@@ -1547,6 +1724,9 @@ main() {
         "start"|"up")
             cmd_start
             ;;
+        "start-force"|"up-force")
+            cmd_start_force
+            ;;
         "stop"|"down")
             cmd_stop
             ;;
@@ -1633,6 +1813,62 @@ main() {
                 exit 1
             fi
             cd ..
+            ;;
+        "check-ports")
+            print_header "🔍 Check Port Conflicts"
+            print_info "Checking for port conflicts..."
+            
+            local ports=("8000:DynamoDB" "4566:LocalStack" "9324:SQS" "9239:Cognito" "3000:SAM API" "5173:React App")
+            local has_conflicts=false
+            
+            for port_info in "${ports[@]}"; do
+                IFS=':' read -r port service <<< "$port_info"
+                if lsof -ti :$port >/dev/null 2>&1; then
+                    has_conflicts=true
+                    local pids=$(lsof -ti :$port)
+                    local process_info=$(lsof -ti :$port | xargs ps -o pid,command -p 2>/dev/null || echo "Unknown process")
+                    
+                    print_warning "$service port $port is in use"
+                    print_info "Processes using port $port:"
+                    echo "$process_info" | while read line; do
+                        echo "  • $line"
+                    done
+                    echo ""
+                else
+                    print_success "$service port $port is available"
+                fi
+            done
+            
+            if [ "$has_conflicts" = "true" ]; then
+                echo ""
+                read -p "🚨 Kill all conflicting processes? (y/n): " -n 1 -r
+                echo ""
+                if [[ $REPLY =~ ^[Yy]$ ]]; then
+                    print_info "Killing all conflicting processes..."
+                    for port_info in "${ports[@]}"; do
+                        IFS=':' read -r port service <<< "$port_info"
+                        if lsof -ti :$port >/dev/null 2>&1; then
+                            local pids=$(lsof -ti :$port)
+                            print_info "Killing processes on port $port..."
+                            for pid in $pids; do
+                                if kill -0 "$pid" 2>/dev/null; then
+                                    kill "$pid" 2>/dev/null
+                                    sleep 1
+                                    if kill -0 "$pid" 2>/dev/null; then
+                                        kill -9 "$pid" 2>/dev/null
+                                    fi
+                                fi
+                            done
+                        fi
+                    done
+                    sleep 2
+                    print_success "All conflicting processes killed"
+                else
+                    print_info "No processes were killed"
+                fi
+            else
+                print_success "No port conflicts found"
+            fi
             ;;
         "help"|"-h"|"--help")
             cmd_help
