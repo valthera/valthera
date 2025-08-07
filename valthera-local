@@ -230,6 +230,12 @@ start_sam_api() {
         return 0
     fi
     
+    # Check if env-local.json exists, generate if missing
+    if [ ! -f "env-local.json" ]; then
+        print_info "env-local.json not found, generating from template..."
+        generate_env_local
+    fi
+    
     # Check if port 3000 is available and resolve conflicts
     if ! check_and_resolve_port_conflicts "3000" "SAM API"; then
         return 1
@@ -269,6 +275,12 @@ start_sam_api_force() {
     if [ ! -f "template.yaml" ]; then
         print_warning "SAM template.yaml not found. Skipping SAM API start."
         return 0
+    fi
+    
+    # Check if env-local.json exists, generate if missing
+    if [ ! -f "env-local.json" ]; then
+        print_info "env-local.json not found, generating from template..."
+        generate_env_local
     fi
     
     # Check if port 3000 is available and auto-kill conflicts
@@ -633,6 +645,35 @@ setup_datasources() {
     for bucket in "${BUCKETS[@]}"; do
         echo "  • s3://$bucket"
     done
+}
+
+# Generate env-local.json from template
+generate_env_local() {
+    print_subheader "Setting up Environment Configuration"
+    
+    if [ -f "env-local.json" ]; then
+        print_info "env-local.json already exists"
+        return 0
+    fi
+    
+    if [ ! -f "env-local.template.json" ]; then
+        print_error "env-local.template.json not found"
+        print_info "Please ensure the template file exists"
+        return 1
+    fi
+    
+    print_info "Generating env-local.json from template..."
+    
+    # Copy the template
+    cp env-local.template.json env-local.json
+    
+    if [ $? -eq 0 ]; then
+        print_success "Generated env-local.json from template"
+        print_info "You can customize this file for your local environment"
+    else
+        print_error "Failed to generate env-local.json"
+        return 1
+    fi
 }
 
 # Command functions
@@ -1383,6 +1424,7 @@ cmd_help() {
     echo -e "    ${GREEN}test-cognito${NC}  Test Cognito setup and configuration"
     echo -e "    ${GREEN}install-deps${NC}  Install React app dependencies"
     echo -e "    ${GREEN}check-ports${NC}   Check and resolve port conflicts"
+    echo -e "    ${GREEN}generate-env${NC}  Generate env-local.json from template"
     echo -e "    ${GREEN}clean${NC}        Clean up all resources (tables, buckets, queues)"
     echo -e "    ${GREEN}help${NC}         Show this help message"
     echo ""
@@ -1397,6 +1439,7 @@ cmd_help() {
     echo "    ./valthera-local setup-cognito      # Manually setup Cognito"
     echo "    ./valthera-local install-deps       # Install React dependencies"
     echo "    ./valthera-local check-ports        # Check and resolve port conflicts"
+    echo "    ./valthera-local generate-env       # Generate env-local.json"
     echo "    ./valthera-local destroy            # Nuclear option - remove everything"
     echo ""
     echo -e "${BOLD}AWS SERVICES:${NC}"
@@ -1869,6 +1912,10 @@ main() {
             else
                 print_success "No port conflicts found"
             fi
+            ;;
+        "generate-env")
+            print_header "📝 Generate Environment Configuration"
+            generate_env_local
             ;;
         "help"|"-h"|"--help")
             cmd_help
