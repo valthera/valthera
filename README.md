@@ -81,8 +81,8 @@ cd valthera
 # Start backend services (Docker containers, SAM API, etc.)
 ./valthera-local start
 
-# In a new terminal, start the React app
-cd app && pnpm run dev
+# In a new terminal, install React app dependencies and start the app
+cd app && pnpm install && pnpm run dev
 ```
 
 This sets up:
@@ -110,14 +110,26 @@ If this is your first time running the project:
    - Start SAM API
    - Generate environment files if missing
 
-2. **Start React app:**
+2. **Install React app dependencies and start the app:**
    ```bash
-   cd app && pnpm run dev
+   cd app && pnpm install && pnpm run dev
    ```
    This will:
-   - Install dependencies if needed
+   - Install all React app dependencies
    - Start Vite development server
    - Serve the React app
+
+### Subsequent Runs
+
+For subsequent runs, you can skip the install step if dependencies are already installed:
+
+```bash
+# Start backend services
+./valthera-local start
+
+# Start React app (if dependencies are already installed)
+cd app && pnpm run dev
+```
 
 ### Test Credentials
 
@@ -133,6 +145,7 @@ If you encounter issues:
 - **View logs:** `tail -f logs/sam.log` (backend) or check browser console (frontend)
 - **Restart services:** `./valthera-local restart`
 - **Port conflicts:** `./valthera-local check-ports`
+- **Reinstall React dependencies:** `cd app && pnpm install`
 
 To build the stereo camera, check the `hardware/` folder for CAD files and setup steps.
 
