@@ -1,0 +1,83 @@
+services:
+  # DynamoDB Local
+  dynamodb-local:
+    image: amazon/dynamodb-local:latest
+    container_name: valthera-dynamodb-local
+    ports:
+      - "8000:8000"
+    command: ["-jar", "DynamoDBLocal.jar", "-sharedDb", "-inMemory"]
+    environment:
+      - AWS_ACCESS_KEY_ID=local
+      - AWS_SECRET_ACCESS_KEY=local
+      - AWS_DEFAULT_REGION=us-east-1
+
+  # LocalStack for S3 and other AWS services (excluding SQS)
+  localstack:
+    image: localstack/localstack:latest
+    container_name: valthera-localstack
+    ports:
+      - "4566:4566"
+    environment:
+      - SERVICES=s3
+      - DEBUG=0
+      - AWS_DEFAULT_REGION=us-east-1
+      - AWS_ACCESS_KEY_ID=local
+      - AWS_SECRET_ACCESS_KEY=local
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+
+  # ElasticMQ for SQS emulation
+  sqs-local:
+    image: softwaremill/elasticmq-native:latest
+    container_name: valthera-sqs-local
+    ports:
+      - "9324:9324"
+      - "9325:9325"
+    environment:
+      - AWS_DEFAULT_REGION=us-east-1
+    volumes:
+      - "./config/elasticmq.conf:/opt/elasticmq.conf"
+
+  # Cognito Local for authentication
+  cognito-local:
+    image: jagregory/cognito-local:latest
+    container_name: valthera-cognito-local
+    ports:
+      - "9239:9239"
+    volumes:
+      - "./.cognito-data:/app/.cognito"
+    environment:
+      - AWS_DEFAULT_REGION=us-east-1
+      - PORT=9239
+      - CODE=123123
+
+  # Video Processor Worker
+  video-processor:
+    build:
+      context: ./containers/video-processor
+      dockerfile: Dockerfile
+    container_name: valthera-video-processor
+    depends_on:
+      - sqs-local
+      - localstack
+    environment:
+      - AWS_ACCESS_KEY_ID=local
+      - AWS_SECRET_ACCESS_KEY=local
+      - AWS_DEFAULT_REGION=us-east-1
+      - SQS_ENDPOINT_URL=http://sqs-local:9324
+      - SQS_QUEUE_URL=http://sqs-local:9324/queue/video-processor-queue
+      - S3_ENDPOINT_URL=http://localstack:4566
+      - S3_BUCKET=valthera-processed
+      - WORKER_LOG_LEVEL=INFO
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - "./logs/video-processor:/app/logs"
+    restart: unless-stopped
+
+networks:
+  default:
+    driver: bridge
+
+# volumes:
+  # dynamodb_data:
+  # localstack_data:

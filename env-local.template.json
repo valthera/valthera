@@ -1,0 +1,18 @@
+{
+  "Parameters": {
+    "Environment": "dev",
+    "ResourcePrefix": "valthera-dev",
+    "TablePrefix": "valthera-dev",
+    "BucketPrefix": "valthera-dev",
+    "IsLocal": "true",
+    "COGNITO_USER_POOL_ID": "local_6DRReT3F",
+    "COGNITO_CLIENT_ID": "593y2ngybvgrzruxdrwf8300w",
+    "COGNITO_ENDPOINT": "http://localhost:9239"
+  },
+  "ProjectGetFunction": {
+    "AWS_ENDPOINT_URL": "http://localhost:8000",
+    "S3_ENDPOINT_URL": "http://localhost:4566",
+    "ALLOW_UNAUTHENTICATED_LOCAL": "true",
+    "LOCAL_DEFAULT_USER_ID": "local-dev-user"
+  }
+}

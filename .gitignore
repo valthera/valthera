@@ -189,3 +189,105 @@ thumb
 sketch
 
 # End of https://www.toptal.com/developers/gitignore/api/python,react
+
+
+.aws-sam/
+.cognito-data/
+
+python/
+
+.valthera-react.pid
+.valthera-sam.pid
+.sam-api.pid
+### AWS & Infrastructure ###
+# AWS SAM build artifacts
+.aws-sam/
+samconfig.toml
+
+# CDK outputs (contain sensitive infrastructure data)
+cdk-outputs.json
+**/cdk-outputs.json
+environments/*/cdk-outputs.json
+
+# Local AWS configuration
+env-local.json
+
+# Cognito local data
+.cognito-data/
+
+### Environment & Configuration ###
+# Environment files (contain sensitive data)
+.env*
+!.env.example
+!.env.production.template
+!.env.local.example
+
+# Local configuration files
+*.local
+!*.local.example
+
+### Process & Runtime Files ###
+# Process ID files
+*.pid
+.valthera-react.pid
+.valthera-sam.pid
+.sam-api.pid
+
+# Log files
+logs/
+*.log
+
+### Development Tools ###
+# Claude AI settings (may contain sensitive data)
+.claude/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+### Build & Distribution ###
+# Python build artifacts
+python/
+build/
+dist/
+
+# Node.js build artifacts
+node_modules/
+dist/
+dist-ssr/
+
+### Temporary Files ###
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.backup
+
+### Security & Secrets ###
+# API keys and secrets
+*.key
+*.pem
+*.p12
+*.pfx
+secrets.json
+credentials.json
+
+# Local development files
+local-test.sh
+valthera-local
+
+# Local configuration files (generated from templates)
+env-local.json
+samconfig.toml

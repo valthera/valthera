@@ -1,0 +1,27 @@
+# Base template for Lambda layers
+# This template provides common configuration for all layers
+
+# Common layer properties
+LayerProperties:
+  CompatibleRuntimes:
+    - python3.9
+  CompatibleArchitectures:
+    - x86_64
+  Description: !Sub "${LayerDescription} - Valthera ${Environment} Environment"
+  Tags:
+    - Key: Project
+      Value: valthera
+    - Key: Environment
+      Value: !Ref Environment
+    - Key: ManagedBy
+      Value: SAM
+
+# Common layer metadata
+LayerMetadata:
+  LayerVersionArn: !Ref LayerVersion
+  LayerName: !Ref LayerName
+  Description: !Ref Description
+  CompatibleRuntimes:
+    - python3.9
+  CompatibleArchitectures:
+    - x86_64 

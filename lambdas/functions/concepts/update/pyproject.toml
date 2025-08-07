@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "concepts-update"
+version = "0.1.0"
+description = "Update concept"
+authors = ["Valthera Team"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.9"
+boto3 = "^1.39.4"
+valthera-core = {path = "../../../packages/valthera-core"}
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^7.0.0"
+pytest-mock = "^3.10.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api" 
