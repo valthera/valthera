@@ -115,5 +115,3 @@ Start with [CONTRIBUTING.md](./CONTRIBUTING.md) or open an issue with ideas.
 ## Summary
 
 Valthera gives you the full stack for building custom video classifiers — from the camera to the model. It’s open-source, runs locally or in the cloud, and is designed to be simple to use and easy to modify.
-
-No hype. Just tools that work.
