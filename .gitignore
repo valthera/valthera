@@ -286,7 +286,6 @@ credentials.json
 
 # Local development files
 local-test.sh
-valthera-local
 
 # Local configuration files (generated from templates)
 env-local.json
