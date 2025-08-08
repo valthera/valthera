@@ -4,24 +4,75 @@ import uuid
 from datetime import datetime
 import sys
 import os
-
-sys.path.append(os.path.join(os.path.dirname(__file__), 'shared'))
-
+import base64
 from valthera_core import (
-    log_execution_time, 
-    log_request_info, 
-    log_error, 
-    log_response_info,
-    validate_file_type,
-    success_response, 
-    error_response, 
-    not_found_response,
     get_user_id_from_event,
+    get_dynamodb_resource,
+    get_s3_client,
+    success_response,
+    error_response,
+    not_found_response,
     Config
 )
+# Remove valthera_core imports and implement functions directly
+def log_execution_time(func):
+    """Decorator to log function execution time."""
+    def wrapper(*args, **kwargs):
+        return func(*args, **kwargs)
+    return wrapper
 
+def log_request_info(event):
+    """Log request information."""
+    print(f"Request method: {event.get('httpMethod')}")
+    print(f"Request path: {event.get('path')}")
+    print(f"Request headers: {event.get('headers')}")
+    print(f"Request body: {event.get('body')}")
 
-@log_execution_time
+def log_error(error, context=None):
+    """Log error information."""
+    print(f"ERROR: {error}")
+    if context:
+        print(f"Context: {context}")
+
+def log_response_info(response):
+    """Log response information."""
+    print(f"Response: {response}")
+
+## Use shared response helpers
+
+def validate_file_type(filename):
+    """Validate file type based on extension."""
+    allowed_extensions = ['.mp4', '.avi', '.mov', '.mkv', '.wmv', '.flv', '.webm']
+    file_extension = os.path.splitext(filename.lower())[1]
+    
+    if not file_extension:
+        return False, 'File must have a valid extension'
+    
+    if file_extension not in allowed_extensions:
+        return False, f'File type {file_extension} is not supported. Allowed types: {", ".join(allowed_extensions)}'
+    
+    return True, None
+
+def decode_jwt_payload(token):
+    """Decode JWT token payload without verification (for local development)."""
+    try:
+        # Split the token into parts
+        parts = token.split('.')
+        if len(parts) != 3:
+            return None
+        
+        # Decode the payload (second part)
+        payload = parts[1]
+        # Add padding if needed
+        payload += '=' * (4 - len(payload) % 4)
+        
+        # Decode from base64
+        decoded = base64.urlsafe_b64decode(payload)
+        return json.loads(decoded)
+    except Exception as e:
+        print(f"Error decoding JWT: {e}")
+        return None
+
 def lambda_handler(event, context):
     """Generate presigned URLs for secure file uploads to S3."""
     try:
@@ -65,16 +116,7 @@ def lambda_handler(event, context):
             return error_response(f'File size exceeds maximum allowed size of {Config.MAX_FILE_SIZE_MB}MB', 400, 'VALIDATION_ERROR')
         
         # Verify data source exists and belongs to user
-        aws_endpoint_url = os.environ.get('AWS_ENDPOINT_URL')
-        print(f"AWS_ENDPOINT_URL: {aws_endpoint_url}")
-        
-        if aws_endpoint_url:
-            # For Docker containers, use host.docker.internal to connect to host
-            if aws_endpoint_url.startswith('http://localhost:'):
-                aws_endpoint_url = aws_endpoint_url.replace('localhost', 'host.docker.internal')
-            dynamodb = boto3.resource('dynamodb', endpoint_url=aws_endpoint_url)
-        else:
-            dynamodb = boto3.resource('dynamodb')
+        dynamodb = get_dynamodb_resource()
         
         table_name = os.environ.get('MAIN_TABLE_NAME', 'valthera-dev-main')
         print(f"Table name: {table_name}")
@@ -95,12 +137,7 @@ def lambda_handler(event, context):
         s3_key = f"users/{user_id}/data-sources/{datasource_id}/{file_id}_{filename}"
         
         # Generate presigned URL for upload
-        s3_kwargs = {}
-        if Config.S3_ENDPOINT_URL:
-            s3_kwargs['endpoint_url'] = Config.S3_ENDPOINT_URL
-            s3_kwargs['region_name'] = 'us-east-1'
-        
-        s3_client = boto3.client('s3', **s3_kwargs)
+        s3_client = get_s3_client()
         
         # Set conditions for the presigned URL
         conditions = [

@@ -3,6 +3,7 @@ import boto3
 import os
 from datetime import datetime
 from decimal import Decimal
+from valthera_core import get_user_id_from_event
 
 class DecimalEncoder(json.JSONEncoder):
     def default(self, obj):
@@ -10,27 +11,7 @@ class DecimalEncoder(json.JSONEncoder):
             return str(obj)
         return super(DecimalEncoder, self).default(obj)
 
-def get_user_id_from_event(event):
-    """Extract user ID from the event."""
-    try:
-        # Check for Cognito authorizer
-        if 'requestContext' in event and 'authorizer' in event['requestContext']:
-            claims = event['requestContext']['authorizer']['claims']
-            return claims.get('sub')
-        
-        # For local development, check for user_id in headers
-        headers = event.get('headers', {})
-        if headers:
-            # Try to get from Authorization header
-            auth_header = headers.get('Authorization', '')
-            if auth_header.startswith('Bearer '):
-                # For local dev, we'll use a test user ID
-                return 'test-user-id'
-        
-        return None
-    except Exception as e:
-        print(f"Error extracting user ID: {e}")
-        return None
+
 
 def get_cors_headers():
     """Get CORS headers."""

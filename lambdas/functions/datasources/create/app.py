@@ -6,6 +6,15 @@ from datetime import datetime
 import sys
 import os
 from decimal import Decimal
+from valthera_core import (
+    get_user_id_from_event,
+    success_response,
+    error_response,
+    get_cors_headers,
+    get_dynamodb_resource,
+    get_s3_client,
+    Config
+)
 
 class DecimalEncoder(json.JSONEncoder):
     """Custom JSON encoder to handle Decimal types from DynamoDB."""
@@ -14,23 +23,7 @@ class DecimalEncoder(json.JSONEncoder):
             return float(obj)
         return super(DecimalEncoder, self).default(obj)
 
-def get_dynamodb_resource():
-    """Get DynamoDB resource with proper endpoint configuration."""
-    aws_endpoint_url = os.environ.get('AWS_ENDPOINT_URL')
-    if aws_endpoint_url:
-        # For Docker containers, use host.docker.internal to connect to host
-        if aws_endpoint_url.startswith('http://localhost:'):
-            aws_endpoint_url = aws_endpoint_url.replace('localhost', 'host.docker.internal')
-        
-        # For local development, use dummy credentials and disable SSL verification
-        return boto3.resource('dynamodb', 
-                            endpoint_url=aws_endpoint_url,
-                            aws_access_key_id='dummy',
-                            aws_secret_access_key='dummy',
-                            region_name='us-east-1',
-                            verify=False)
-    else:
-        return boto3.resource('dynamodb')
+## Use shared get_dynamodb_resource from valthera_core
 
 def decode_jwt_payload(token):
     """Decode JWT payload without verification (for local development)."""
@@ -44,58 +37,10 @@ def decode_jwt_payload(token):
         payload = parts[1]
         # Add padding if needed
         payload += '=' * (4 - len(payload) % 4)
-        decoded = base64.b64decode(payload)
+        decoded = base64.urlsafe_b64decode(payload)
         return json.loads(decoded)
     except Exception as e:
         print(f"Error decoding JWT: {e}")
-        return None
-
-def get_user_id_from_event(event):
-    """Extract user ID from the event."""
-    try:
-        # Check for Cognito authorizer
-        if ('requestContext' in event and 
-                'authorizer' in event['requestContext']):
-            claims = event['requestContext']['authorizer']['claims']
-            return claims.get('sub')
-        
-        # For local development, check for user_id in headers
-        headers = event.get('headers', {})
-        if headers:
-            # Try to get from Authorization header
-            auth_header = headers.get('Authorization', '')
-            if auth_header.startswith('Bearer '):
-                # Extract the token
-                token = auth_header[7:]  # Remove 'Bearer ' prefix
-                
-                # Decode the JWT token to get the user ID
-                payload = decode_jwt_payload(token)
-                if payload:
-                    # Extract user ID from the JWT payload
-                    user_id = payload.get('sub') or payload.get('cognito:username')
-                    if user_id:
-                        print(f"Extracted user ID from JWT: {user_id}")
-                        return user_id
-                    else:
-                        print("No user ID found in JWT payload")
-                        print(f"JWT payload: {payload}")
-                        # Don't fall back to test-user-id if JWT parsing fails
-                        return None
-                else:
-                    print("Failed to decode JWT token")
-                    # Don't fall back to test-user-id if JWT parsing fails
-                    return None
-        
-        # Only fall back to default user if there's no Authorization header at all
-        # This allows testing without authentication in local dev
-        if (os.environ.get('ENVIRONMENT') == 'dev' or 
-                os.environ.get('AWS_ENDPOINT_URL')):
-            print("Local development detected - no Authorization header, using default test user ID")
-            return os.environ.get('LOCAL_DEFAULT_USER_ID', 'local-dev-user')
-        
-        return None
-    except Exception as e:
-        print(f"Error extracting user ID: {e}")
         return None
 
 def validate_required_fields(data, required_fields):
@@ -106,30 +51,7 @@ def validate_required_fields(data, required_fields):
             missing_fields.append(field)
     return missing_fields
 
-def get_cors_headers():
-    """Get CORS headers for the response."""
-    return {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,Origin,X-Requested-With',
-        'Access-Control-Allow-Methods': 'OPTIONS,GET,POST,PUT,DELETE,PATCH',
-        'Access-Control-Allow-Credentials': 'true'
-    }
-
-def success_response(data, status_code=200):
-    """Create a successful response."""
-    return {
-        'statusCode': status_code,
-        'headers': get_cors_headers(),
-        'body': json.dumps(data, cls=DecimalEncoder)
-    }
-
-def error_response(message, status_code=400):
-    """Create an error response."""
-    return {
-        'statusCode': status_code,
-        'headers': get_cors_headers(),
-        'body': json.dumps({'error': message})
-    }
+## Use shared response helpers from valthera_core
 
 def validation_error_response(missing_fields, message):
     """Create a validation error response."""
@@ -199,8 +121,11 @@ def lambda_handler(event, context):
         }
         
         # Get DynamoDB resource and save to DynamoDB
+        print(f"ENVIRONMENT: {os.environ.get('ENVIRONMENT')}")
+        print(f"AWS_ENDPOINT_URL: {os.environ.get('AWS_ENDPOINT_URL')}")
         dynamodb = get_dynamodb_resource()
         table_name = os.environ.get('MAIN_TABLE_NAME', 'valthera-dev-main')
+        print(f"Table name: {table_name}")
         table = dynamodb.Table(table_name)
         
         # Save to DynamoDB
@@ -208,25 +133,14 @@ def lambda_handler(event, context):
         
         # Create S3 folder structure (optional for local development)
         try:
-            s3_endpoint_url = os.environ.get('S3_ENDPOINT_URL')
-            print(f"S3_ENDPOINT_URL: {s3_endpoint_url}")
-            
-            if s3_endpoint_url:
-                # For Docker containers, use host.docker.internal to connect to host
-                if s3_endpoint_url.startswith('http://localhost:'):
-                    s3_endpoint_url = s3_endpoint_url.replace('localhost', 'host.docker.internal')
-                print(f"Using local S3 endpoint: {s3_endpoint_url}")
-                s3_client = boto3.client('s3', 
-                                       endpoint_url=s3_endpoint_url, 
-                                       region_name='us-east-1',
-                                       aws_access_key_id='dummy',
-                                       aws_secret_access_key='dummy')
-            else:
-                print("Using AWS S3 (no local endpoint)")
-                s3_client = boto3.client('s3')
+            # Use shared S3 client helper which handles local endpoint mapping
+            s3_client = get_s3_client()
             
             # Use a default bucket name for local development
             bucket_name = os.environ.get('DATASOURCES_BUCKET_NAME', 'valthera-dev-datasources')
+            # If running against local S3, use the local bucket created by valthera-local
+            if Config.S3_ENDPOINT_URL:
+                bucket_name = 'valthera-datasources'
             print(f"Using bucket: {bucket_name}")
             
             # Create the folder by uploading a placeholder object

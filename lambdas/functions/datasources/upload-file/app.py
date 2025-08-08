@@ -13,19 +13,25 @@ from pathlib import Path
 sys.path.append(os.path.dirname(__file__))
 
 from valthera_core import (
-    log_execution_time, 
-    log_request_info, 
-    log_error, 
-    log_response_info
+    log_execution_time,
+    log_request_info,
+    log_error,
+    log_response_info,
+    success_response,
+    error_response,
+    not_found_response,
+    get_user_id_from_event,
+    validate_file_size,
+    validate_file_type,
+    get_dynamodb_resource,
+    get_s3_client,
+    Config
 )
-from valthera_core import validate_file_size, validate_file_type
-from valthera_core import success_response, error_response, not_found_response
-from valthera_core import Config
-
 
 # Configuration for video processing
 MAX_LAMBDA_VIDEO_SIZE = 50 * 1024 * 1024  # 50MB - Lambda temp storage limit
-VIDEO_OPTIMIZATION_ENABLED = os.environ.get('VIDEO_OPTIMIZATION_ENABLED', 'true').lower() == 'true'
+# Disable video optimization for local development
+VIDEO_OPTIMIZATION_ENABLED = False  # Disabled for local development
 
 
 def should_optimize_video(file_size, file_type):
@@ -138,33 +144,35 @@ def lambda_handler(event, context):
         if not user_id:
             return error_response('User not authenticated', 401, 'UNAUTHORIZED')
         
-        # Parse request body (multipart form data)
+        # Parse request body (JSON with base64 content)
         if not event.get('body'):
             return error_response('Request body is required', 400)
         
-        # For multipart form data, we need to parse it
-        # This is a simplified version - in production you'd use a proper multipart parser
         try:
-            # Parse the multipart form data
-            file_data = parse_multipart_data(event['body'], event.get('headers', {}))
+            # Parse JSON body
+            body_data = json.loads(event['body'])
+            file_name = body_data.get('filename', 'unknown')
+            base64_content = body_data.get('content', '')
+            
+            # Decode base64 content
+            file_content = base64.b64decode(base64_content)
+            file_size = len(file_content)
+            
+        except json.JSONDecodeError as e:
+            return error_response(f'Invalid JSON data: {str(e)}', 400)
         except Exception as e:
             return error_response(f'Invalid file data: {str(e)}', 400)
         
-        if not file_data:
+        if not file_content:
             return error_response('No file data found', 400)
         
         # Validate file
-        file_name = file_data.get('filename', 'unknown')
-        file_content = file_data.get('content', b'')
-        file_size = len(file_content)
-        
-        # Validate file size
-        is_valid_size, size_error = validate_file_size(file_size)
+        is_valid_size, size_error = validate_file_size(file_size, max_size_mb=100)
         if not is_valid_size:
             return error_response(size_error, 400, 'VALIDATION_ERROR')
         
         # Validate file type
-        is_valid_type, type_error = validate_file_type(file_name)
+        is_valid_type, type_error = validate_file_type(file_name, allowed_extensions=['.mp4', '.avi', '.mov', '.mkv', '.wmv', '.flv', '.webm'])
         if not is_valid_type:
             return error_response(type_error, 400, 'VALIDATION_ERROR')
         
@@ -217,8 +225,11 @@ def lambda_handler(event, context):
             print(f"✅ No optimization needed for: {file_name}")
         
         # Get data source from DynamoDB
-        dynamodb = boto3.resource('dynamodb')
-        table = dynamodb.Table(Config.MAIN_TABLE)
+        dynamodb = get_dynamodb_resource()
+        
+        table_name = os.environ.get('MAIN_TABLE_NAME', 'valthera-dev-main')
+        print(f"Table name: {table_name}")
+        table = dynamodb.Table(table_name)
         
         # Check if data source exists and belongs to user
         response = table.get_item(
@@ -238,9 +249,17 @@ def lambda_handler(event, context):
         s3_key = f"users/{user_id}/data-sources/{datasource_id}/{file_id}_{file_name}"
         
         # Upload to S3 (with optimized content if available)
-        s3 = boto3.client('s3')
+        s3 = get_s3_client()
+        
+        bucket_name = os.environ.get('VIDEO_BUCKET_NAME', 'valthera-dev-videos')
+        print(f"S3 bucket: {bucket_name}")
+        if Config.S3_ENDPOINT_URL:
+            # In our local stack, video uploads go to 'valthera-dev-videos-local'
+            bucket_name = 'valthera-dev-videos-local'
+            print(f"Using local bucket name: {bucket_name}")
+        
         s3.put_object(
-            Bucket=Config.VIDEO_BUCKET,
+            Bucket=bucket_name,
             Key=s3_key,
             Body=final_content,
             ContentType=content_type,
@@ -307,67 +326,4 @@ def lambda_handler(event, context):
         
     except Exception as e:
         log_error(e, {'function': 'upload_file', 'event': event})
-        return error_response('Internal server error', 500)
-
-
-def get_user_id_from_event(event):
-    """Extract user ID from Cognito authorizer context."""
-    try:
-        # Get user ID from Cognito authorizer
-        authorizer_context = event.get('requestContext', {}).get('authorizer', {})
-        user_id = authorizer_context.get('sub') or authorizer_context.get('user_id')
-        
-        if not user_id:
-            # Fallback to headers if authorizer not available
-            user_id = event.get('headers', {}).get('X-User-ID')
-        
-        return user_id
-    except Exception as e:
-        log_error(e, {'function': 'get_user_id_from_event'})
-        return None
-
-
-def parse_multipart_data(body, headers):
-    """Parse multipart form data from request body."""
-    # This is a simplified parser - in production you'd use a proper library
-    try:
-        # For now, assume the body contains the file data directly
-        # In a real implementation, you'd parse the multipart boundary
-        content_type = headers.get('content-type', '')
-        
-        if 'multipart/form-data' in content_type:
-            # Extract boundary
-            boundary = content_type.split('boundary=')[-1]
-            
-            # Parse multipart data
-            parts = body.split(f'--{boundary}')
-            
-            for part in parts:
-                if 'filename=' in part and 'Content-Type:' in part:
-                    # Extract filename
-                    filename_start = part.find('filename="') + 10
-                    filename_end = part.find('"', filename_start)
-                    filename = part[filename_start:filename_end]
-                    
-                    # Extract content
-                    content_start = part.find('\r\n\r\n') + 4
-                    content_end = part.find(f'\r\n--{boundary}', content_start)
-                    if content_end == -1:
-                        content_end = part.find('\r\n--', content_start)
-                    
-                    content = part[content_start:content_end]
-                    
-                    return {
-                        'filename': filename,
-                        'content': content.encode('utf-8') if isinstance(content, str) else content
-                    }
-        
-        # Fallback: assume body is the file content
-        return {
-            'filename': 'uploaded_file.mp4',
-            'content': body.encode('utf-8') if isinstance(body, str) else body
-        }
-        
-    except Exception as e:
-        log_error(e, {'function': 'parse_multipart_data'})
-        return None 
+        return error_response('Internal server error', 500) 

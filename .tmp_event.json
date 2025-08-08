@@ -1,0 +1,1 @@
+{"httpMethod":"GET","path":"/api/projects","headers":{"X-User-ID":"local-dev-user"},"requestContext":{"authorizer":{"claims":{"sub":"local-dev-user"}}}}

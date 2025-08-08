@@ -289,3 +289,6 @@ local-test.sh
 # Local configuration files (generated from templates)
 env-local.json
 samconfig.toml
+
+
+tmp/

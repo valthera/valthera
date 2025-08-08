@@ -11,8 +11,26 @@
   },
   "ProjectGetFunction": {
     "AWS_ENDPOINT_URL": "http://localhost:8000",
-    "S3_ENDPOINT_URL": "http://localhost:4566",
-    "ALLOW_UNAUTHENTICATED_LOCAL": "true",
-    "LOCAL_DEFAULT_USER_ID": "local-dev-user"
+    "S3_ENDPOINT_URL": "http://localhost:4566"
+  },
+  "DatasourceGeneratePresignedUrlFunction": {
+    "AWS_ENDPOINT_URL": "http://localhost:8000",
+    "S3_ENDPOINT_URL": "http://localhost:4566"
+  },
+  "DatasourceGetByIdFunction": {
+    "AWS_ENDPOINT_URL": "http://localhost:8000",
+    "S3_ENDPOINT_URL": "http://localhost:4566"
+  },
+  "DatasourceCreateFunction": {
+    "AWS_ENDPOINT_URL": "http://localhost:8000",
+    "S3_ENDPOINT_URL": "http://localhost:4566"
+  },
+  "DatasourceUploadFunction": {
+    "AWS_ENDPOINT_URL": "http://localhost:8000",
+    "S3_ENDPOINT_URL": "http://localhost:4566"
+  },
+  "DatasourceGetFunction": {
+    "AWS_ENDPOINT_URL": "http://localhost:8000",
+    "S3_ENDPOINT_URL": "http://localhost:4566"
   }
 }

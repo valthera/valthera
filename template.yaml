@@ -159,6 +159,18 @@ Resources:
       QueueName: !Sub "${ResourcePrefix}-video-processor-dlq"
       MessageRetentionPeriod: 1209600
 
+  # Lambda Layers
+  ValtheraCoreLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: !Sub "${ResourcePrefix}-valthera-core"
+      Description: Core utilities and shared code for Valthera Lambda functions
+      ContentUri: lambdas/shared/valthera-core-layer/
+      CompatibleRuntimes:
+        - python3.9
+      CompatibleArchitectures:
+        - x86_64
+
   # Cognito User Pool
   UserPool:
     Type: AWS::Cognito::UserPool
@@ -213,6 +225,8 @@ Resources:
       FunctionName: !Sub "${ResourcePrefix}-concept-create"
       CodeUri: lambdas/functions/concepts/create/
       Handler: app.lambda_handler
+      Layers:
+        - !Ref ValtheraCoreLayer
       Environment:
         Variables:
           MAIN_TABLE_NAME: !Sub "${TablePrefix}-main"
@@ -248,6 +262,8 @@ Resources:
       FunctionName: !Sub "${ResourcePrefix}-concept-get"
       CodeUri: lambdas/functions/concepts/get/
       Handler: app.lambda_handler
+      Layers:
+        - !Ref ValtheraCoreLayer
       Environment:
         Variables:
           MAIN_TABLE_NAME: !Sub "${TablePrefix}-main"
@@ -277,6 +293,8 @@ Resources:
       FunctionName: !Sub "${ResourcePrefix}-concept-get-by-id"
       CodeUri: lambdas/functions/concepts/get-by-id/
       Handler: app.lambda_handler
+      Layers:
+        - !Ref ValtheraCoreLayer
       Environment:
         Variables:
           MAIN_TABLE_NAME: !Sub "${TablePrefix}-main"
@@ -306,6 +324,8 @@ Resources:
       FunctionName: !Sub "${ResourcePrefix}-concept-update"
       CodeUri: lambdas/functions/concepts/update/
       Handler: app.lambda_handler
+      Layers:
+        - !Ref ValtheraCoreLayer
       Environment:
         Variables:
           MAIN_TABLE_NAME: !Sub "${TablePrefix}-main"
@@ -331,6 +351,8 @@ Resources:
       FunctionName: !Sub "${ResourcePrefix}-concept-delete"
       CodeUri: lambdas/functions/concepts/delete/
       Handler: app.lambda_handler
+      Layers:
+        - !Ref ValtheraCoreLayer
       Environment:
         Variables:
           MAIN_TABLE_NAME: !Sub "${TablePrefix}-main"
@@ -356,6 +378,8 @@ Resources:
       FunctionName: !Sub "${ResourcePrefix}-concept-upload-samples"
       CodeUri: lambdas/functions/concepts/upload-samples/
       Handler: app.lambda_handler
+      Layers:
+        - !Ref ValtheraCoreLayer
       Environment:
         Variables:
           MAIN_TABLE_NAME: !Sub "${TablePrefix}-main"
@@ -384,6 +408,8 @@ Resources:
       FunctionName: !Sub "${ResourcePrefix}-concept-link-videos"
       CodeUri: lambdas/functions/concepts/link-videos/
       Handler: app.lambda_handler
+      Layers:
+        - !Ref ValtheraCoreLayer
       Environment:
         Variables:
           MAIN_TABLE_NAME: !Sub "${TablePrefix}-main"
@@ -413,6 +439,8 @@ Resources:
       FunctionName: !Sub "${ResourcePrefix}-concept-unlink-video"
       CodeUri: lambdas/functions/concepts/unlink-video/
       Handler: app.lambda_handler
+      Layers:
+        - !Ref ValtheraCoreLayer
       Environment:
         Variables:
           MAIN_TABLE_NAME: !Sub "${TablePrefix}-main"
@@ -438,6 +466,8 @@ Resources:
       FunctionName: !Sub "${ResourcePrefix}-concept-get-linked-videos"
       CodeUri: lambdas/functions/concepts/get-linked-videos/
       Handler: app.lambda_handler
+      Layers:
+        - !Ref ValtheraCoreLayer
       Environment:
         Variables:
           MAIN_TABLE_NAME: !Sub "${TablePrefix}-main"
@@ -467,6 +497,8 @@ Resources:
       FunctionName: !Sub "${ResourcePrefix}-concept-generate-video-url"
       CodeUri: lambdas/functions/concepts/generate-video-url/
       Handler: app.lambda_handler
+      Layers:
+        - !Ref ValtheraCoreLayer
       Environment:
         Variables:
           MAIN_TABLE_NAME: !Sub "${TablePrefix}-main"
@@ -495,6 +527,8 @@ Resources:
       FunctionName: !Sub "${ResourcePrefix}-concept-stream-video"
       CodeUri: lambdas/functions/concepts/stream-video/
       Handler: app.lambda_handler
+      Layers:
+        - !Ref ValtheraCoreLayer
       Environment:
         Variables:
           MAIN_TABLE_NAME: !Sub "${TablePrefix}-main"
@@ -524,6 +558,8 @@ Resources:
       FunctionName: !Sub "${ResourcePrefix}-concept-optimize-video"
       CodeUri: lambdas/functions/concepts/optimize-video/
       Handler: app.lambda_handler
+      Layers:
+        - !Ref ValtheraCoreLayer
       Environment:
         Variables:
           MAIN_TABLE_NAME: !Sub "${TablePrefix}-main"
@@ -551,6 +587,8 @@ Resources:
       FunctionName: !Sub "${ResourcePrefix}-datasource-get"
       CodeUri: lambdas/functions/datasources/get/
       Handler: app.lambda_handler
+      Layers:
+        - !Ref ValtheraCoreLayer
       Environment:
         Variables:
           MAIN_TABLE_NAME: !Sub "${TablePrefix}-main"
@@ -577,6 +615,8 @@ Resources:
       FunctionName: !Sub "${ResourcePrefix}-datasource-create"
       CodeUri: lambdas/functions/datasources/create/
       Handler: app.lambda_handler
+      Layers:
+        - !Ref ValtheraCoreLayer
       Environment:
         Variables:
           MAIN_TABLE_NAME: !Sub "${TablePrefix}-main"
@@ -609,6 +649,8 @@ Resources:
       FunctionName: !Sub "${ResourcePrefix}-datasource-get-by-id"
       CodeUri: lambdas/functions/datasources/get-by-id/
       Handler: app.lambda_handler
+      Layers:
+        - !Ref ValtheraCoreLayer
       Environment:
         Variables:
           MAIN_TABLE_NAME: !Sub "${TablePrefix}-main"
@@ -635,6 +677,8 @@ Resources:
       FunctionName: !Sub "${ResourcePrefix}-datasource-delete"
       CodeUri: lambdas/functions/datasources/delete/
       Handler: app.lambda_handler
+      Layers:
+        - !Ref ValtheraCoreLayer
       Environment:
         Variables:
           MAIN_TABLE_NAME: !Sub "${TablePrefix}-main"
@@ -665,6 +709,8 @@ Resources:
       Handler: app.lambda_handler
       Timeout: 900
       MemorySize: 1024
+      Layers:
+        - !Ref ValtheraCoreLayer
       Environment:
         Variables:
           MAIN_TABLE_NAME: !Sub "${TablePrefix}-main"
@@ -695,6 +741,8 @@ Resources:
       FunctionName: !Sub "${ResourcePrefix}-datasource-generate-presigned-url"
       CodeUri: lambdas/functions/datasources/generate-presigned-url/
       Handler: app.lambda_handler
+      Layers:
+        - !Ref ValtheraCoreLayer
       Environment:
         Variables:
           MAIN_TABLE_NAME: !Sub "${TablePrefix}-main"
@@ -729,6 +777,8 @@ Resources:
       Handler: app.lambda_handler
       Timeout: 900
       MemorySize: 1024
+      Layers:
+        - !Ref ValtheraCoreLayer
       Environment:
         Variables:
           MAIN_TABLE_NAME: !Sub "${TablePrefix}-main"
@@ -763,6 +813,8 @@ Resources:
       FunctionName: !Sub "${ResourcePrefix}-datasource-delete-file"
       CodeUri: lambdas/functions/datasources/delete-file/
       Handler: app.lambda_handler
+      Layers:
+        - !Ref ValtheraCoreLayer
       Environment:
         Variables:
           MAIN_TABLE_NAME: !Sub "${TablePrefix}-main"
@@ -790,6 +842,8 @@ Resources:
       FunctionName: !Sub "${ResourcePrefix}-video-create"
       CodeUri: lambdas/functions/data/create/
       Handler: app.lambda_handler
+      Layers:
+        - !Ref ValtheraCoreLayer
       Environment:
         Variables:
           MAIN_TABLE_NAME: !Sub "${TablePrefix}-main"
@@ -822,6 +876,8 @@ Resources:
       FunctionName: !Sub "${ResourcePrefix}-project-create"
       CodeUri: lambdas/functions/projects/create/
       Handler: app.lambda_handler
+      Layers:
+        - !Ref ValtheraCoreLayer
       Environment:
         Variables:
           MAIN_TABLE_NAME: !Sub "${TablePrefix}-main"
@@ -852,6 +908,8 @@ Resources:
       FunctionName: !Sub "${ResourcePrefix}-project-get"
       CodeUri: lambdas/functions/projects/get/
       Handler: app.lambda_handler
+      Layers:
+        - !Ref ValtheraCoreLayer
       Environment:
         Variables:
           MAIN_TABLE_NAME: !Sub "${TablePrefix}-main"
@@ -882,6 +940,8 @@ Resources:
       FunctionName: !Sub "${ResourcePrefix}-project-get-by-id"
       CodeUri: lambdas/functions/projects/get-by-id/
       Handler: app.lambda_handler
+      Layers:
+        - !Ref ValtheraCoreLayer
       Environment:
         Variables:
           MAIN_TABLE_NAME: !Sub "${TablePrefix}-main"
@@ -912,6 +972,8 @@ Resources:
       FunctionName: !Sub "${ResourcePrefix}-project-update"
       CodeUri: lambdas/functions/projects/update/
       Handler: app.lambda_handler
+      Layers:
+        - !Ref ValtheraCoreLayer
       Environment:
         Variables:
           MAIN_TABLE_NAME: !Sub "${TablePrefix}-main"
@@ -937,6 +999,8 @@ Resources:
       FunctionName: !Sub "${ResourcePrefix}-project-delete"
       CodeUri: lambdas/functions/projects/delete/
       Handler: app.lambda_handler
+      Layers:
+        - !Ref ValtheraCoreLayer
       Environment:
         Variables:
           MAIN_TABLE_NAME: !Sub "${TablePrefix}-main"
@@ -963,6 +1027,8 @@ Resources:
       FunctionName: !Sub "${ResourcePrefix}-video-processor"
       CodeUri: containers/video-processor/
       Handler: worker.lambda_handler
+      Layers:
+        - !Ref ValtheraCoreLayer
       Environment:
         Variables:
           MAIN_TABLE_NAME: !Sub "${TablePrefix}-main"
@@ -992,6 +1058,8 @@ Resources:
       Runtime: python3.9
       Timeout: 30
       MemorySize: 512
+      Layers:
+        - !Ref ValtheraCoreLayer
       Environment:
         Variables:
           VIDEO_BUCKET_NAME: !Ref VideoBucket
@@ -1022,6 +1090,8 @@ Resources:
       FunctionName: !Sub "${ResourcePrefix}-cors-options"
       CodeUri: lambdas/options_handler/
       Handler: options_handler.lambda_handler
+      Layers:
+        - !Ref ValtheraCoreLayer
       Environment:
         Variables:
           ENVIRONMENT: !Ref Environment

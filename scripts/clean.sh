@@ -12,23 +12,18 @@ rm -rf lambdas-built/
 
 # Clean Lambda layers build artifacts
 echo "Cleaning Lambda layers..."
-find lambdas/layers -name "python" -type d -exec rm -rf {} + 2>/dev/null || true
-find lambdas/layers -name "requirements.txt" -type f -delete 2>/dev/null || true
-find lambdas/layers -name "*.zip" -type f -delete 2>/dev/null || true
-
-# Clean Poetry cache for shared packages
-echo "Cleaning Poetry cache..."
-cd packages/valthera-core
-poetry cache clear . --all
-cd ../..
+# Preserve valthera-core layer source
+mv lambdas/shared/valthera-core-layer/python/valthera_core /tmp/valthera_core_backup 2>/dev/null || true
+find lambdas/shared -name "python" -type d -exec rm -rf {} + 2>/dev/null || true
+find lambdas/shared -name "requirements.txt" -type f -delete 2>/dev/null || true
+find lambdas/shared -name "*.zip" -type f -delete 2>/dev/null || true
+# Restore valthera-core layer source
+mkdir -p lambdas/shared/valthera-core-layer/python
+mv /tmp/valthera_core_backup lambdas/shared/valthera-core-layer/python/valthera_core 2>/dev/null || true
 
 # Clean Poetry cache for layers
 echo "Cleaning layer Poetry cache..."
-cd lambdas/layers/valthera-core
-poetry cache clear . --all
-cd ../../..
-
-cd lambdas/layers/ffmpeg
+cd lambdas/shared/valthera-core-layer
 poetry cache clear . --all
 cd ../../..
 

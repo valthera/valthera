@@ -96,52 +96,22 @@ export function DataSourceUpload({ dataSourceId, onUploadComplete, onUploadStart
         }, 200);
 
         try {
-          // Step 1: Generate presigned URL
-          const uploadUrlData = await api.dataSources.generateUploadUrl(dataSourceId, {
-            filename: file.name,
-            contentType: file.type,
-            fileSize: file.size
-          });
-
-          // Step 2: Upload directly to S3 using presigned URL
+          // Upload directly to Lambda function (not to S3)
           const formData = new FormData();
-          
-          // Add the required fields from the presigned URL
-          Object.entries(uploadUrlData.fields).forEach(([key, value]) => {
-            formData.append(key, value);
-          });
-          
-          // Add the file (must be last)
           formData.append('file', file);
-
-          // Upload to S3
-          const uploadResponse = await fetch(uploadUrlData.uploadUrl, {
-            method: 'POST',
-            body: formData
+          
+          // Convert file to base64 for JSON transmission
+          const arrayBuffer = await file.arrayBuffer();
+          const base64Content = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+          
+          // Upload to Lambda function
+          const uploadedFile = await api.dataSources.uploadFile(dataSourceId, {
+            filename: file.name,
+            content: base64Content
           });
-
-          if (!uploadResponse.ok) {
-            throw new Error(`Upload failed: ${uploadResponse.statusText}`);
-          }
 
           clearInterval(progressInterval);
           
-          // Update progress to 95%
-          setUploadingFiles(prev => {
-            const updated = [...prev];
-            if (updated[index]) {
-              updated[index].progress = 95;
-            }
-            return updated;
-          });
-
-          // Step 3: Confirm upload completion
-          const uploadedFile = await api.dataSources.confirmUpload(dataSourceId, {
-            fileId: uploadUrlData.fileId,
-            filename: file.name,
-            s3Key: uploadUrlData.s3Key
-          });
-
           // Mark as completed
           setUploadingFiles(prev => {
             const updated = [...prev];
