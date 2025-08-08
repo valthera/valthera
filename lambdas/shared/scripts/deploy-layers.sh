@@ -32,18 +32,12 @@ deploy_layer() {
     
     cd "$layer_dir"
     
-    # Check if pyproject.toml exists
-    if [ ! -f "pyproject.toml" ]; then
-        echo "Error: pyproject.toml not found in $layer_dir"
-        return 1
-    fi
-    
-    # Build the layer
+    # Build the layer (no Poetry; use requirements.txt if present)
     echo "Building layer $layer_name..."
-    poetry install --no-dev --no-root
-    poetry export -f requirements.txt --output requirements.txt --without-hashes
-    pip install -r requirements.txt -t python/
-    rm requirements.txt
+    mkdir -p python
+    if [ -f "requirements.txt" ]; then
+        pip install -r requirements.txt -t python/
+    fi
     
     # Create zip file
     echo "Creating zip file for $layer_name..."

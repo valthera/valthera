@@ -11,7 +11,8 @@ from valthera_core import (
     log_execution_time, 
     log_request_info, 
     log_error, 
-    log_response_info
+    log_response_info,
+    get_user_id_from_event
 )
 from valthera_core import success_response, error_response, not_found_response
 from valthera_core import Config
@@ -126,43 +127,3 @@ def lambda_handler(event, context):
         return error_response('Internal server error', 500)
 
 
-def get_user_id_from_event(event):
-    """Extract user ID from Cognito authorizer context or JWT token."""
-    try:
-        # Get user ID from Cognito authorizer (if available)
-        authorizer_context = event.get('requestContext', {}).get('authorizer', {})
-        user_id = authorizer_context.get('sub') or authorizer_context.get('user_id')
-        
-        if not user_id:
-            # Try to extract from Authorization header JWT token
-            headers = event.get('headers', {})
-            auth_header = headers.get('Authorization') or headers.get('authorization')
-            
-            if auth_header and auth_header.startswith('Bearer '):
-                token = auth_header.split(' ')[1]
-                try:
-                    # Decode JWT payload (without verification for now since we don't have the key)
-                    # JWT format: header.payload.signature
-                    payload_encoded = token.split('.')[1]
-                    # Add padding if needed
-                    padding = 4 - len(payload_encoded) % 4
-                    if padding != 4:
-                        payload_encoded += '=' * padding
-                    
-                    payload_bytes = base64.b64decode(payload_encoded)
-                    payload = json.loads(payload_bytes.decode('utf-8'))
-                    
-                    # Extract user ID from JWT payload
-                    user_id = payload.get('sub') or payload.get('user_id') or payload.get('username')
-                    
-                except Exception as jwt_error:
-                    log_error(jwt_error, {'function': 'jwt_decode', 'token_preview': token[:50]})
-        
-        if not user_id:
-            # Fallback to headers if authorizer not available
-            user_id = event.get('headers', {}).get('X-User-ID')
-        
-        return user_id
-    except Exception as e:
-        log_error(e, {'function': 'get_user_id_from_event'})
-        return None

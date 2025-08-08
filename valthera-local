@@ -58,6 +58,21 @@ setup_aws_env() {
     export AWS_DEFAULT_REGION=us-east-1
 }
 
+# Ensure SAM build artifacts exist for mounted functions
+ensure_sam_built() {
+    if [ ! -d ".aws-sam/build/ProjectGetFunction" ]; then
+        print_warning "SAM build artifacts missing (.aws-sam/build/ProjectGetFunction). Running sam build..."
+        if command -v sam &> /dev/null; then
+            sam build --use-container || { print_error "sam build failed"; return 1; }
+            print_success "SAM build completed"
+        else
+            print_error "SAM CLI not found; cannot build. Install AWS SAM CLI."
+            return 1
+        fi
+    fi
+    return 0
+}
+
 # Process management for application services
 REACT_PID_FILE=".valthera-react.pid"
 SAM_PID_FILE=".valthera-sam.pid"
@@ -241,18 +256,28 @@ start_sam_api() {
         return 1
     fi
     
+    # Ensure SAM build artifacts exist
+    ensure_sam_built || return 1
+
     print_info "Starting SAM API..."
     
     # Create logs directory
     mkdir -p logs
     
-    # Start SAM API in background
-    nohup sam local start-api --env-vars env-local.json > logs/sam.log 2>&1 &
+    # Start SAM API in background (with debug + explicit host/port)
+    nohup sam local start-api -t template.yaml \
+        --env-vars env-local.json \
+        --host 0.0.0.0 \
+        --port 3000 \
+        --debug \
+        --warm-containers LAZY \
+        > logs/sam.log 2>&1 &
     local sam_pid=$!
     
     store_pid "$sam_pid" "$SAM_PID_FILE"
     print_success "SAM API started (PID: $sam_pid)"
     print_info "  Logs: tail -f logs/sam.log"
+    print_info "  Trace single request: curl -i -H 'X-User-ID: local-dev-user' http://localhost:3000/api/projects"
     
     # Wait a moment to check if it started successfully  
     sleep 3
@@ -288,18 +313,28 @@ start_sam_api_force() {
         return 1
     fi
     
+    # Ensure SAM build artifacts exist
+    ensure_sam_built || return 1
+
     print_info "Starting SAM API..."
     
     # Create logs directory
     mkdir -p logs
     
-    # Start SAM API in background
-    nohup sam local start-api --env-vars env-local.json > logs/sam.log 2>&1 &
+    # Start SAM API in background (with debug + explicit host/port)
+    nohup sam local start-api -t template.yaml \
+        --env-vars env-local.json \
+        --host 0.0.0.0 \
+        --port 3000 \
+        --debug \
+        --warm-containers LAZY \
+        > logs/sam.log 2>&1 &
     local sam_pid=$!
     
     store_pid "$sam_pid" "$SAM_PID_FILE"
     print_success "SAM API started (PID: $sam_pid)"
     print_info "  Logs: tail -f logs/sam.log"
+    print_info "  Trace single request: curl -i -H 'X-User-ID: local-dev-user' http://localhost:3000/api/projects"
     
     # Wait a moment to check if it started successfully  
     sleep 3
@@ -1081,6 +1116,8 @@ cmd_apps() {
             start_sam_api
             print_success "SAM API started"
             print_info "To start React app manually: cd app && pnpm run dev"
+            print_info "View logs: tail -f logs/sam.log"
+            print_info "Follow-only ProjectGetFunction: tail -f logs/sam.log | grep -E 'ProjectGetFunction|/api/projects'"
             ;;
         "stop")
             print_header "Stopping Application Services"
@@ -1095,6 +1132,7 @@ cmd_apps() {
             start_sam_api
             print_success "SAM API restarted"
             print_info "💡 If you have React app running manually, restart it manually"
+            print_info "View logs: tail -f logs/sam.log"
             ;;
         "logs")
             local service=${2:-}
@@ -1103,11 +1141,15 @@ cmd_apps() {
                 echo "Available logs:"
                 echo "  ./valthera-local apps logs react"
                 echo "  ./valthera-local apps logs sam"
+                echo "\nCommon filters:"
+                echo "  tail -f logs/sam.log | grep ProjectGetFunction"
+                echo "  tail -f logs/sam.log | grep '/api/projects'"
             elif [ "$service" = "react" ]; then
                 print_header "React App Logs"
                 tail -f logs/react.log 2>/dev/null || print_error "React log not found"
             elif [ "$service" = "sam" ]; then
                 print_header "SAM API Logs"
+                echo "Tip: tail -f logs/sam.log | grep -E 'Project|Concept|Datasource'"
                 tail -f logs/sam.log 2>/dev/null || print_error "SAM log not found"
             else
                 print_error "Unknown service: $service. Use 'react' or 'sam'"
@@ -1268,13 +1310,13 @@ cmd_rebuild() {
         rm -rf .aws-sam/
         rm -rf lambdas-built/
     fi
-    
-    # Step 2: Build Lambda Layers
-    print_subheader "Step 2: Building Lambda Layers"
-    if [ -f "./lambdas/shared/scripts/build-layers.sh" ]; then
-        ./lambdas/shared/scripts/build-layers.sh
+
+    # Step 2: Build Lambda Functions and Layers
+    print_subheader "Step 2: Building Lambda Functions and Layers"
+    if [ -f "./scripts/build-lambdas.sh" ]; then
+        ./scripts/build-lambdas.sh
     else
-        print_error "build-layers.sh not found"
+        print_error "build-lambdas.sh not found"
         exit 1
     fi
     
@@ -1339,7 +1381,13 @@ cmd_rebuild() {
     if command -v sam &> /dev/null; then
         print_info "Starting SAM local API..."
         # Start SAM in background
-        sam local start-api --env-vars env-local.json --host 0.0.0.0 --port 3000 &
+        sam local start-api -t template.yaml \
+            --env-vars env-local.json \
+            --host 0.0.0.0 \
+            --port 3000 \
+            --debug \
+            --warm-containers LAZY \
+            > logs/sam.log 2>&1 &
         SAM_PID=$!
         echo $SAM_PID > .sam-api.pid
         print_success "SAM API started on http://localhost:3000"

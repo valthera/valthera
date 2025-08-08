@@ -13,46 +13,48 @@ from typing import Dict
 
 def build_function_dependencies(function_path: str) -> bool:
     """
-    Build function dependencies using Poetry.
-    
+    Ensure function dependencies via requirements.txt for AWS SAM.
+
+    If a requirements.txt is missing, scaffold a minimal one.
+    Then install packages into a local .venv folder for local testing,
+    while SAM will vendor deps during `sam build`.
+
     Args:
         function_path: Path to the function directory
-        
+
     Returns:
-        True if build successful, False otherwise
+        True if successful, False otherwise
     """
     try:
-        # Check if pyproject.toml exists
-        pyproject_path = os.path.join(function_path, "pyproject.toml")
-        if not os.path.exists(pyproject_path):
-            print(f"No pyproject.toml found in {function_path}")
-            return False
-            
-        # Install dependencies
+        requirements_path = os.path.join(function_path, "requirements.txt")
+        if not os.path.exists(requirements_path):
+            print(f"requirements.txt not found in {function_path}; creating a minimal one")
+            with open(requirements_path, "w") as f:
+                f.write("boto3==1.40.4\n")
+                f.write("botocore==1.40.4\n")
+                f.write("jmespath==1.0.1\n")
+                f.write("python-dateutil==2.9.0.post0\n")
+                f.write("s3transfer==0.13.1\n")
+                f.write("six==1.17.0\n")
+                f.write("urllib3>=1.21.1,<3\n")
+
+        venv_dir = os.path.join(function_path, ".venv")
+        os.makedirs(venv_dir, exist_ok=True)
+
         subprocess.run(
-            ["poetry", "install", "--only=main"],
+            ["pip", "install", "-r", requirements_path, "-t", venv_dir],
             cwd=function_path,
-            check=True
+            check=True,
         )
-        
-        # Export requirements.txt
-        subprocess.run(
-            [
-                "poetry", "export", "-f", "requirements.txt",
-                "--output", "requirements.txt", "--without-hashes"
-            ],
-            cwd=function_path,
-            check=True
-        )
-        
-        print(f"Successfully built dependencies for {function_path}")
+
+        print(f"Dependencies prepared for {function_path}")
         return True
-        
+
     except subprocess.CalledProcessError as e:
-        print(f"Error building dependencies for {function_path}: {e}")
+        print(f"Error installing dependencies for {function_path}: {e}")
         return False
     except Exception as e:
-        print(f"Unexpected error building {function_path}: {e}")
+        print(f"Unexpected error preparing dependencies for {function_path}: {e}")
         return False
 
 
@@ -198,28 +200,18 @@ def handle_delete(event, context, user):
     with open(os.path.join(function_path, "app.py"), "w") as f:
         f.write(app_template)
     
-    # Create pyproject.toml template
-    pyproject_template = f'''[tool.poetry]
-name = "{function_name}"
-version = "0.1.0"
-description = "{function_name} Lambda function"
-authors = ["Valthera Team"]
+    # Create requirements.txt template (SAM-friendly)
+    requirements_txt = """boto3==1.40.4
+botocore==1.40.4
+jmespath==1.0.1
+python-dateutil==2.9.0.post0
+s3transfer==0.13.1
+six==1.17.0
+urllib3>=1.21.1,<3
+"""
 
-[tool.poetry.dependencies]
-python = "^3.9"
-boto3 = "^1.34.0"
-valthera-core = {{path = "../../../packages/valthera-core"}}
-
-[tool.poetry.group.dev.dependencies]
-pytest = "^7.0.0"
-
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
-'''
-    
-    with open(os.path.join(function_path, "pyproject.toml"), "w") as f:
-        f.write(pyproject_template)
+    with open(os.path.join(function_path, "requirements.txt"), "w") as f:
+        f.write(requirements_txt)
     
     # Create README.md template
     readme_template = f'''# {function_name}
@@ -230,8 +222,8 @@ This Lambda function handles {function_name} operations.
 
 ```bash
 cd {function_path}
-poetry install
-poetry run pytest
+pip install -r requirements.txt -t .venv
+pytest
 ```
 
 ## Deployment

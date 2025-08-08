@@ -451,14 +451,14 @@ export const api = {
     deleteFile: (id: string, fileId: string) =>
       apiRequest<void>(`/api/datasources/${id}/files/${fileId}`, { method: 'DELETE' }),
     
-    // Legacy method for direct upload (fallback)
-    uploadFile: (id: string, file: File) => {
-      const formData = new FormData();
-      formData.append('file', file);
+    // Direct upload to Lambda function
+    uploadFile: (id: string, fileData: { filename: string; content: string }) => {
       return apiRequest<VideoFile>(`/api/datasources/${id}/upload`, { 
         method: 'POST', 
-        body: formData,
-        headers: {} // Let browser set Content-Type for FormData
+        body: JSON.stringify(fileData),
+        headers: {
+          'Content-Type': 'application/json'
+        }
       });
     }
   },

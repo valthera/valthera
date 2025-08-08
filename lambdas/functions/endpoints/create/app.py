@@ -11,7 +11,8 @@ from valthera_core import (
     log_execution_time, 
     log_request_info, 
     log_error, 
-    log_response_info
+    log_response_info,
+    get_user_id_from_event
 )
 from valthera_core import validate_required_fields
 from valthera_core import success_response, error_response, validation_error_response, not_found_response
@@ -114,23 +115,6 @@ def lambda_handler(event, context):
     except Exception as e:
         log_error(e, {'function': 'create_endpoint', 'event': event})
         return error_response('Internal server error', 500)
-
-
-def get_user_id_from_event(event):
-    """Extract user ID from Cognito authorizer context."""
-    try:
-        # Get user ID from Cognito authorizer
-        authorizer_context = event.get('requestContext', {}).get('authorizer', {})
-        user_id = authorizer_context.get('sub') or authorizer_context.get('user_id')
-        
-        if not user_id:
-            # Fallback to headers if authorizer not available
-            user_id = event.get('headers', {}).get('X-User-ID')
-        
-        return user_id
-    except Exception as e:
-        log_error(e, {'function': 'get_user_id_from_event'})
-        return None
 
 
 def verify_project_ownership(user_id, project_id):

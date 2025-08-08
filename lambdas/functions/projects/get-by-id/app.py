@@ -3,6 +3,7 @@ import os
 import boto3
 from botocore.exceptions import ClientError
 import base64
+from valthera_core import get_user_id_from_event
 
 def get_dynamodb_resource():
     """Get DynamoDB resource with proper endpoint configuration."""
@@ -22,71 +23,7 @@ def get_dynamodb_resource():
     else:
         return boto3.resource('dynamodb')
 
-def decode_jwt_payload(token):
-    """Decode JWT payload without verification (for local development)."""
-    try:
-        # Split the token into parts
-        parts = token.split('.')
-        if len(parts) != 3:
-            return None
-        
-        # Decode the payload (second part)
-        payload = parts[1]
-        # Add padding if needed
-        payload += '=' * (4 - len(payload) % 4)
-        decoded = base64.b64decode(payload)
-        return json.loads(decoded)
-    except Exception as e:
-        print(f"Error decoding JWT: {e}")
-        return None
 
-def get_user_id_from_event(event):
-    """Extract user ID from the event."""
-    try:
-        # Check for Cognito authorizer
-        if ('requestContext' in event and 
-                'authorizer' in event['requestContext']):
-            claims = event['requestContext']['authorizer']['claims']
-            return claims.get('sub')
-        
-        # For local development, check for user_id in headers
-        headers = event.get('headers', {})
-        if headers:
-            # Try to get from Authorization header
-            auth_header = headers.get('Authorization', '')
-            if auth_header.startswith('Bearer '):
-                # Extract the token
-                token = auth_header[7:]  # Remove 'Bearer ' prefix
-                
-                # Decode the JWT token to get the user ID
-                payload = decode_jwt_payload(token)
-                if payload:
-                    # Extract user ID from the JWT payload
-                    user_id = payload.get('sub') or payload.get('cognito:username')
-                    if user_id:
-                        print(f"Extracted user ID from JWT: {user_id}")
-                        return user_id
-                    else:
-                        print("No user ID found in JWT payload")
-                        print(f"JWT payload: {payload}")
-                        # Don't fall back to test-user-id if JWT parsing fails
-                        return None
-                else:
-                    print("Failed to decode JWT token")
-                    # Don't fall back to test-user-id if JWT parsing fails
-                    return None
-        
-        # Only fall back to default user if there's no Authorization header at all
-        # This allows testing without authentication in local dev
-        if (os.environ.get('ENVIRONMENT') == 'dev' or 
-                os.environ.get('AWS_ENDPOINT_URL')):
-            print("Local development detected - no Authorization header, using default test user ID")
-            return os.environ.get('LOCAL_DEFAULT_USER_ID', 'local-dev-user')
-        
-        return None
-    except Exception as e:
-        print(f"Error extracting user ID: {e}")
-        return None
 
 def get_cors_headers():
     """Get CORS headers."""

@@ -6,6 +6,7 @@ from datetime import datetime
 import sys
 import os
 from decimal import Decimal
+from valthera_core import get_user_id_from_event
 
 class DecimalEncoder(json.JSONEncoder):
     """Custom JSON encoder to handle Decimal types from DynamoDB."""
@@ -22,13 +23,8 @@ def get_dynamodb_resource():
         if aws_endpoint_url.startswith('http://localhost:'):
             aws_endpoint_url = aws_endpoint_url.replace('localhost', 'host.docker.internal')
         
-        # For local development, use dummy credentials and disable SSL verification
-        return boto3.resource('dynamodb', 
-                            endpoint_url=aws_endpoint_url,
-                            aws_access_key_id='dummy',
-                            aws_secret_access_key='dummy',
-                            region_name='us-east-1',
-                            verify=False)
+        # For local development, use simple endpoint configuration
+        return boto3.resource('dynamodb', endpoint_url=aws_endpoint_url)
     else:
         return boto3.resource('dynamodb')
 
@@ -44,58 +40,10 @@ def decode_jwt_payload(token):
         payload = parts[1]
         # Add padding if needed
         payload += '=' * (4 - len(payload) % 4)
-        decoded = base64.b64decode(payload)
+        decoded = base64.urlsafe_b64decode(payload)
         return json.loads(decoded)
     except Exception as e:
         print(f"Error decoding JWT: {e}")
-        return None
-
-def get_user_id_from_event(event):
-    """Extract user ID from the event."""
-    try:
-        # Check for Cognito authorizer
-        if ('requestContext' in event and 
-                'authorizer' in event['requestContext']):
-            claims = event['requestContext']['authorizer']['claims']
-            return claims.get('sub')
-        
-        # For local development, check for user_id in headers
-        headers = event.get('headers', {})
-        if headers:
-            # Try to get from Authorization header
-            auth_header = headers.get('Authorization', '')
-            if auth_header.startswith('Bearer '):
-                # Extract the token
-                token = auth_header[7:]  # Remove 'Bearer ' prefix
-                
-                # Decode the JWT token to get the user ID
-                payload = decode_jwt_payload(token)
-                if payload:
-                    # Extract user ID from the JWT payload
-                    user_id = payload.get('sub') or payload.get('cognito:username')
-                    if user_id:
-                        print(f"Extracted user ID from JWT: {user_id}")
-                        return user_id
-                    else:
-                        print("No user ID found in JWT payload")
-                        print(f"JWT payload: {payload}")
-                        # Don't fall back to test-user-id if JWT parsing fails
-                        return None
-                else:
-                    print("Failed to decode JWT token")
-                    # Don't fall back to test-user-id if JWT parsing fails
-                    return None
-        
-        # Only fall back to default user if there's no Authorization header at all
-        # This allows testing without authentication in local dev
-        if (os.environ.get('ENVIRONMENT') == 'dev' or 
-                os.environ.get('AWS_ENDPOINT_URL')):
-            print("Local development detected - no Authorization header, using default test user ID")
-            return os.environ.get('LOCAL_DEFAULT_USER_ID', 'local-dev-user')
-        
-        return None
-    except Exception as e:
-        print(f"Error extracting user ID: {e}")
         return None
 
 def validate_required_fields(data, required_fields):

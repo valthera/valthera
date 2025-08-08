@@ -4,24 +4,101 @@ import uuid
 from datetime import datetime
 import sys
 import os
+import base64
+from valthera_core import get_user_id_from_event
+# Remove valthera_core imports and implement functions directly
+def log_execution_time(func):
+    """Decorator to log function execution time."""
+    def wrapper(*args, **kwargs):
+        return func(*args, **kwargs)
+    return wrapper
 
-sys.path.append(os.path.join(os.path.dirname(__file__), 'shared'))
+def log_request_info(event):
+    """Log request information."""
+    print(f"Request method: {event.get('httpMethod')}")
+    print(f"Request path: {event.get('path')}")
+    print(f"Request headers: {event.get('headers')}")
+    print(f"Request body: {event.get('body')}")
 
-from valthera_core import (
-    log_execution_time, 
-    log_request_info, 
-    log_error, 
-    log_response_info,
-    validate_file_type,
-    success_response, 
-    error_response, 
-    not_found_response,
-    get_user_id_from_event,
-    Config
-)
+def log_error(error, context=None):
+    """Log error information."""
+    print(f"ERROR: {error}")
+    if context:
+        print(f"Context: {context}")
 
+def log_response_info(response):
+    """Log response information."""
+    print(f"Response: {response}")
 
-@log_execution_time
+def success_response(data, status_code=200):
+    """Create a success response."""
+    return {
+        'statusCode': status_code,
+        'headers': {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent,X-Requested-With',
+            'Access-Control-Allow-Methods': 'OPTIONS,GET,POST,PUT,DELETE,PATCH',
+            'Access-Control-Allow-Credentials': 'true',
+            'Access-Control-Expose-Headers': 'Access-Control-Allow-Origin,Access-Control-Allow-Credentials'
+        },
+        'body': json.dumps(data)
+    }
+
+def error_response(message, status_code=400, code=None):
+    """Create an error response."""
+    response_data = {'error': message}
+    if code:
+        response_data['code'] = code
+    
+    return {
+        'statusCode': status_code,
+        'headers': {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent,X-Requested-With',
+            'Access-Control-Allow-Methods': 'OPTIONS,GET,POST,PUT,DELETE,PATCH',
+            'Access-Control-Allow-Credentials': 'true',
+            'Access-Control-Expose-Headers': 'Access-Control-Allow-Origin,Access-Control-Allow-Credentials'
+        },
+        'body': json.dumps(response_data)
+    }
+
+def not_found_response(resource_type, resource_id):
+    """Create a not found response."""
+    return error_response(f'{resource_type} not found: {resource_id}', 404, 'NOT_FOUND')
+
+def validate_file_type(filename):
+    """Validate file type based on extension."""
+    allowed_extensions = ['.mp4', '.avi', '.mov', '.mkv', '.wmv', '.flv', '.webm']
+    file_extension = os.path.splitext(filename.lower())[1]
+    
+    if not file_extension:
+        return False, 'File must have a valid extension'
+    
+    if file_extension not in allowed_extensions:
+        return False, f'File type {file_extension} is not supported. Allowed types: {", ".join(allowed_extensions)}'
+    
+    return True, None
+
+def decode_jwt_payload(token):
+    """Decode JWT token payload without verification (for local development)."""
+    try:
+        # Split the token into parts
+        parts = token.split('.')
+        if len(parts) != 3:
+            return None
+        
+        # Decode the payload (second part)
+        payload = parts[1]
+        # Add padding if needed
+        payload += '=' * (4 - len(payload) % 4)
+        
+        # Decode from base64
+        decoded = base64.urlsafe_b64decode(payload)
+        return json.loads(decoded)
+    except Exception as e:
+        print(f"Error decoding JWT: {e}")
+        return None
+
 def lambda_handler(event, context):
     """Generate presigned URLs for secure file uploads to S3."""
     try:
