@@ -5,7 +5,15 @@ from datetime import datetime
 import sys
 import os
 import base64
-from valthera_core import get_user_id_from_event
+from valthera_core import (
+    get_user_id_from_event,
+    get_dynamodb_resource,
+    get_s3_client,
+    success_response,
+    error_response,
+    not_found_response,
+    Config
+)
 # Remove valthera_core imports and implement functions directly
 def log_execution_time(func):
     """Decorator to log function execution time."""
@@ -30,41 +38,7 @@ def log_response_info(response):
     """Log response information."""
     print(f"Response: {response}")
 
-def success_response(data, status_code=200):
-    """Create a success response."""
-    return {
-        'statusCode': status_code,
-        'headers': {
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent,X-Requested-With',
-            'Access-Control-Allow-Methods': 'OPTIONS,GET,POST,PUT,DELETE,PATCH',
-            'Access-Control-Allow-Credentials': 'true',
-            'Access-Control-Expose-Headers': 'Access-Control-Allow-Origin,Access-Control-Allow-Credentials'
-        },
-        'body': json.dumps(data)
-    }
-
-def error_response(message, status_code=400, code=None):
-    """Create an error response."""
-    response_data = {'error': message}
-    if code:
-        response_data['code'] = code
-    
-    return {
-        'statusCode': status_code,
-        'headers': {
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent,X-Requested-With',
-            'Access-Control-Allow-Methods': 'OPTIONS,GET,POST,PUT,DELETE,PATCH',
-            'Access-Control-Allow-Credentials': 'true',
-            'Access-Control-Expose-Headers': 'Access-Control-Allow-Origin,Access-Control-Allow-Credentials'
-        },
-        'body': json.dumps(response_data)
-    }
-
-def not_found_response(resource_type, resource_id):
-    """Create a not found response."""
-    return error_response(f'{resource_type} not found: {resource_id}', 404, 'NOT_FOUND')
+## Use shared response helpers
 
 def validate_file_type(filename):
     """Validate file type based on extension."""
@@ -142,16 +116,7 @@ def lambda_handler(event, context):
             return error_response(f'File size exceeds maximum allowed size of {Config.MAX_FILE_SIZE_MB}MB', 400, 'VALIDATION_ERROR')
         
         # Verify data source exists and belongs to user
-        aws_endpoint_url = os.environ.get('AWS_ENDPOINT_URL')
-        print(f"AWS_ENDPOINT_URL: {aws_endpoint_url}")
-        
-        if aws_endpoint_url:
-            # For Docker containers, use host.docker.internal to connect to host
-            if aws_endpoint_url.startswith('http://localhost:'):
-                aws_endpoint_url = aws_endpoint_url.replace('localhost', 'host.docker.internal')
-            dynamodb = boto3.resource('dynamodb', endpoint_url=aws_endpoint_url)
-        else:
-            dynamodb = boto3.resource('dynamodb')
+        dynamodb = get_dynamodb_resource()
         
         table_name = os.environ.get('MAIN_TABLE_NAME', 'valthera-dev-main')
         print(f"Table name: {table_name}")
@@ -172,12 +137,7 @@ def lambda_handler(event, context):
         s3_key = f"users/{user_id}/data-sources/{datasource_id}/{file_id}_{filename}"
         
         # Generate presigned URL for upload
-        s3_kwargs = {}
-        if Config.S3_ENDPOINT_URL:
-            s3_kwargs['endpoint_url'] = Config.S3_ENDPOINT_URL
-            s3_kwargs['region_name'] = 'us-east-1'
-        
-        s3_client = boto3.client('s3', **s3_kwargs)
+        s3_client = get_s3_client()
         
         # Set conditions for the presigned URL
         conditions = [

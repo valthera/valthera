@@ -7,7 +7,8 @@ from valthera_core import (
     get_user_id_from_event,
     success_response,
     error_response,
-    get_cors_headers
+    get_cors_headers,
+    get_dynamodb_resource
 )
 
 class DecimalEncoder(json.JSONEncoder):
@@ -17,19 +18,8 @@ class DecimalEncoder(json.JSONEncoder):
             return float(obj)
         return super(DecimalEncoder, self).default(obj)
 
-def get_dynamodb_resource():
-    """Get DynamoDB resource with proper endpoint configuration."""
-    aws_endpoint_url = os.environ.get('AWS_ENDPOINT_URL')
-    if aws_endpoint_url:
-        # For local development, use localhost
-        if aws_endpoint_url.startswith('http://localhost:'):
-            # Keep localhost for local testing
-            pass
-        
-        # For local development, use simple endpoint configuration
-        return boto3.resource('dynamodb', endpoint_url=aws_endpoint_url)
-    else:
-        return boto3.resource('dynamodb')
+## Using shared get_dynamodb_resource from valthera_core which handles
+## local Docker vs host endpoint resolution consistently across functions
 
 def transform_datasource_item(item):
     """Transform DynamoDB item to API response format."""

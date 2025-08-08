@@ -6,7 +6,15 @@ from datetime import datetime
 import sys
 import os
 from decimal import Decimal
-from valthera_core import get_user_id_from_event
+from valthera_core import (
+    get_user_id_from_event,
+    success_response,
+    error_response,
+    get_cors_headers,
+    get_dynamodb_resource,
+    get_s3_client,
+    Config
+)
 
 class DecimalEncoder(json.JSONEncoder):
     """Custom JSON encoder to handle Decimal types from DynamoDB."""
@@ -15,18 +23,7 @@ class DecimalEncoder(json.JSONEncoder):
             return float(obj)
         return super(DecimalEncoder, self).default(obj)
 
-def get_dynamodb_resource():
-    """Get DynamoDB resource with proper endpoint configuration."""
-    aws_endpoint_url = os.environ.get('AWS_ENDPOINT_URL')
-    if aws_endpoint_url:
-        # For Docker containers, use host.docker.internal to connect to host
-        if aws_endpoint_url.startswith('http://localhost:'):
-            aws_endpoint_url = aws_endpoint_url.replace('localhost', 'host.docker.internal')
-        
-        # For local development, use simple endpoint configuration
-        return boto3.resource('dynamodb', endpoint_url=aws_endpoint_url)
-    else:
-        return boto3.resource('dynamodb')
+## Use shared get_dynamodb_resource from valthera_core
 
 def decode_jwt_payload(token):
     """Decode JWT payload without verification (for local development)."""
@@ -54,30 +51,7 @@ def validate_required_fields(data, required_fields):
             missing_fields.append(field)
     return missing_fields
 
-def get_cors_headers():
-    """Get CORS headers for the response."""
-    return {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,Origin,X-Requested-With',
-        'Access-Control-Allow-Methods': 'OPTIONS,GET,POST,PUT,DELETE,PATCH',
-        'Access-Control-Allow-Credentials': 'true'
-    }
-
-def success_response(data, status_code=200):
-    """Create a successful response."""
-    return {
-        'statusCode': status_code,
-        'headers': get_cors_headers(),
-        'body': json.dumps(data, cls=DecimalEncoder)
-    }
-
-def error_response(message, status_code=400):
-    """Create an error response."""
-    return {
-        'statusCode': status_code,
-        'headers': get_cors_headers(),
-        'body': json.dumps({'error': message})
-    }
+## Use shared response helpers from valthera_core
 
 def validation_error_response(missing_fields, message):
     """Create a validation error response."""
@@ -147,8 +121,11 @@ def lambda_handler(event, context):
         }
         
         # Get DynamoDB resource and save to DynamoDB
+        print(f"ENVIRONMENT: {os.environ.get('ENVIRONMENT')}")
+        print(f"AWS_ENDPOINT_URL: {os.environ.get('AWS_ENDPOINT_URL')}")
         dynamodb = get_dynamodb_resource()
         table_name = os.environ.get('MAIN_TABLE_NAME', 'valthera-dev-main')
+        print(f"Table name: {table_name}")
         table = dynamodb.Table(table_name)
         
         # Save to DynamoDB
@@ -156,25 +133,14 @@ def lambda_handler(event, context):
         
         # Create S3 folder structure (optional for local development)
         try:
-            s3_endpoint_url = os.environ.get('S3_ENDPOINT_URL')
-            print(f"S3_ENDPOINT_URL: {s3_endpoint_url}")
-            
-            if s3_endpoint_url:
-                # For Docker containers, use host.docker.internal to connect to host
-                if s3_endpoint_url.startswith('http://localhost:'):
-                    s3_endpoint_url = s3_endpoint_url.replace('localhost', 'host.docker.internal')
-                print(f"Using local S3 endpoint: {s3_endpoint_url}")
-                s3_client = boto3.client('s3', 
-                                       endpoint_url=s3_endpoint_url, 
-                                       region_name='us-east-1',
-                                       aws_access_key_id='dummy',
-                                       aws_secret_access_key='dummy')
-            else:
-                print("Using AWS S3 (no local endpoint)")
-                s3_client = boto3.client('s3')
+            # Use shared S3 client helper which handles local endpoint mapping
+            s3_client = get_s3_client()
             
             # Use a default bucket name for local development
             bucket_name = os.environ.get('DATASOURCES_BUCKET_NAME', 'valthera-dev-datasources')
+            # If running against local S3, use the local bucket created by valthera-local
+            if Config.S3_ENDPOINT_URL:
+                bucket_name = 'valthera-datasources'
             print(f"Using bucket: {bucket_name}")
             
             # Create the folder by uploading a placeholder object

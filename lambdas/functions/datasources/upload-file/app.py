@@ -23,6 +23,8 @@ from valthera_core import (
     get_user_id_from_event,
     validate_file_size,
     validate_file_type,
+    get_dynamodb_resource,
+    get_s3_client,
     Config
 )
 
@@ -223,16 +225,7 @@ def lambda_handler(event, context):
             print(f"✅ No optimization needed for: {file_name}")
         
         # Get data source from DynamoDB
-        aws_endpoint_url = os.environ.get('AWS_ENDPOINT_URL')
-        print(f"AWS_ENDPOINT_URL: {aws_endpoint_url}")
-        
-        if aws_endpoint_url:
-            # For Docker containers, use host.docker.internal to connect to host
-            if aws_endpoint_url.startswith('http://localhost:'):
-                aws_endpoint_url = aws_endpoint_url.replace('localhost', 'host.docker.internal')
-            dynamodb = boto3.resource('dynamodb', endpoint_url=aws_endpoint_url)
-        else:
-            dynamodb = boto3.resource('dynamodb')
+        dynamodb = get_dynamodb_resource()
         
         table_name = os.environ.get('MAIN_TABLE_NAME', 'valthera-dev-main')
         print(f"Table name: {table_name}")
@@ -256,22 +249,13 @@ def lambda_handler(event, context):
         s3_key = f"users/{user_id}/data-sources/{datasource_id}/{file_id}_{file_name}"
         
         # Upload to S3 (with optimized content if available)
-        s3_endpoint_url = os.environ.get('S3_ENDPOINT_URL')
-        if s3_endpoint_url:
-            # For Docker containers, use host.docker.internal to connect to host
-            if s3_endpoint_url.startswith('http://localhost:'):
-                s3_endpoint_url = s3_endpoint_url.replace('localhost', 'host.docker.internal')
-            s3 = boto3.client('s3', endpoint_url=s3_endpoint_url)
-        else:
-            s3 = boto3.client('s3')
+        s3 = get_s3_client()
         
         bucket_name = os.environ.get('VIDEO_BUCKET_NAME', 'valthera-dev-videos')
         print(f"S3 bucket: {bucket_name}")
-        print(f"S3 endpoint: {s3_endpoint_url}")
-        
-        # For local development, use the actual bucket name
-        if s3_endpoint_url:
-            bucket_name = 'valthera-dev-videos'
+        if Config.S3_ENDPOINT_URL:
+            # In our local stack, video uploads go to 'valthera-dev-videos-local'
+            bucket_name = 'valthera-dev-videos-local'
             print(f"Using local bucket name: {bucket_name}")
         
         s3.put_object(

@@ -21,6 +21,10 @@
     "AWS_ENDPOINT_URL": "http://localhost:8000",
     "S3_ENDPOINT_URL": "http://localhost:4566"
   },
+  "DatasourceCreateFunction": {
+    "AWS_ENDPOINT_URL": "http://localhost:8000",
+    "S3_ENDPOINT_URL": "http://localhost:4566"
+  },
   "DatasourceUploadFunction": {
     "AWS_ENDPOINT_URL": "http://localhost:8000",
     "S3_ENDPOINT_URL": "http://localhost:4566"
