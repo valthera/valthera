@@ -17,7 +17,6 @@ import {
   Plus,
   Menu,
   X,
-  ChevronLeft,
   Brain,
   Database
 } from 'lucide-react';
@@ -399,7 +398,7 @@ export function AppShell({ children }: AppShellProps) {
       )}
 
       {/* Feature Flag Toggle (Development Only) */}
-      {process.env.NODE_ENV === 'development' && (
+      {import.meta.env.DEV && (
         <div className="fixed bottom-4 right-4 z-50">
           <FeatureFlagToggle />
         </div>

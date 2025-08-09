@@ -39,7 +39,7 @@ export function ConceptList({ projectId }: ConceptListProps) {
       setLoading(true);
       setError(null);
       const data = await api.concepts.list(projectId);
-      setConcepts(data);
+      setConcepts(Array.isArray(data) ? data : (data?.concepts ?? []));
     } catch (error) {
       const apiError = handleApiError(error);
       setError(apiError.message);

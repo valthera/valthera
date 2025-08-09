@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { AppShell, Group, Text, Avatar, Menu, UnstyledButton, Divider, Stack, Box, rem, Flex, Burger } from '@mantine/core'
-import { IconChevronDown, IconUser, IconLogout, IconCreditCard, IconKey, IconPlus, IconCircle } from '@tabler/icons-react'
+import { IconChevronDown, IconUser, IconLogout, IconKey, IconPlus, IconCircle } from '@tabler/icons-react'
 import { useDisclosure, useMediaQuery } from '@mantine/hooks'
 import { useAuth } from '../contexts/AuthContext'
 import { useNavigate } from 'react-router-dom'

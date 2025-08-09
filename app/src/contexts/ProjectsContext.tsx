@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import { type Project } from '../lib/api';
 import { api } from '../lib/api';
+import { useAuth } from './AuthContext';
 
 interface ProjectsContextType {
   projects: Project[];
@@ -16,6 +17,7 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { user, loading: authLoading } = useAuth();
 
   const refreshProjects = async () => {
     try {
@@ -61,8 +63,20 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    refreshProjects();
-  }, []);
+    // Wait for auth to resolve; fetch only when authenticated
+    if (authLoading) {
+      setLoading(true);
+      return;
+    }
+    if (user) {
+      void refreshProjects();
+    } else {
+      // Not authenticated
+      setProjects([]);
+      setError(null);
+      setLoading(false);
+    }
+  }, [user, authLoading]);
 
   const value: ProjectsContextType = {
     projects,

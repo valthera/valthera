@@ -42,7 +42,7 @@ export function ProjectsDashboard() {
   const loadDataSources = async () => {
     try {
       // @ts-ignore - dataSources property exists in the API object
-      const dataSources = await api.dataSources.list();
+      const dataSources = await (api as any).api?.dataSources?.list?.() ?? (api as any).dataSources?.list?.();
       const convertedFolders = dataSources.map((ds: any) => ({
         id: ds.id,
         name: ds.name,

@@ -25,10 +25,8 @@ async function apiRequest<T>(url: string, options: RequestInit = {}): Promise<T>
   const cleanUrl = url.startsWith('/') ? url : `/${url}`;
   const fullUrl = `${cleanBaseUrl}${cleanUrl}`;
   
-  // Get authentication headers
-  const authHeaders: Record<string, string> = {
-    'Content-Type': 'application/json',
-  };
+  // Build authentication headers
+  const authHeaders: Record<string, string> = {};
   
   try {
     // Add authorization header if we have a session
@@ -49,12 +47,23 @@ async function apiRequest<T>(url: string, options: RequestInit = {}): Promise<T>
     console.error('Error fetching auth session:', error);
   }
   
+  // Merge headers and set Content-Type only when appropriate
+  const isFormData = options.body instanceof FormData;
+  const mergedHeaders: Record<string, string> = {
+    ...authHeaders,
+    ...(options.headers as Record<string, string> | undefined),
+  };
+
+  // Only set Content-Type to application/json when body is JSON-like and caller hasn't specified it
+  const hasExplicitContentType = Object.keys(mergedHeaders)
+    .some((key) => key.toLowerCase() === 'content-type');
+  if (!isFormData && options.body !== undefined && !hasExplicitContentType) {
+    mergedHeaders['Content-Type'] = 'application/json';
+  }
+
   const defaultOptions: RequestInit = {
-    headers: {
-      ...authHeaders,
-      ...options.headers,
-    },
     ...options,
+    headers: mergedHeaders,
   };
 
   try {
@@ -206,9 +215,16 @@ export const api = {
   // Projects
   getProjects: async (): Promise<Project[]> => {
     console.log('Making API call to get projects...');
-    const response = await apiRequest<{projects: Project[], count: number}>('/api/projects');
+    const response = await apiRequest<any>('/api/projects');
     console.log('API response for getProjects:', response);
-    return response.projects || [];
+    if (Array.isArray(response)) {
+      return response as Project[];
+    }
+    if (response && Array.isArray(response.projects)) {
+      return response.projects as Project[];
+    }
+    console.warn('Unexpected projects response shape, defaulting to empty array');
+    return [];
   },
 
   createProject: async (data: { name: string; description: string; hasDroidDataset: boolean; linkedDataSources: string[] }): Promise<Project> => {
@@ -390,8 +406,6 @@ export const api = {
     
     getVideoStreamUrl: async (videoId: string) => {
       // Get presigned URL for direct S3 access
-      const baseUrl = import.meta.env.VITE_API_BASE_URL || 'https://oi6057c2vf.execute-api.us-east-1.amazonaws.com/dev';
-      const cleanBaseUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
       
       try {
         // Get authentication token
@@ -420,7 +434,13 @@ export const api = {
     create: (data: { name: string; description?: string }) =>
       apiRequest<DataSource>('/api/datasources', { method: 'POST', body: JSON.stringify(data) }),
     
-    list: () => apiRequest<DataSource[]>('/api/datasources'),
+    list: async () => {
+      const response = await apiRequest<any>('/api/datasources');
+      if (Array.isArray(response)) return response as DataSource[];
+      if (response && Array.isArray(response.datasources)) return response.datasources as DataSource[];
+      console.warn('Unexpected datasources response shape');
+      return [] as DataSource[];
+    },
     
     get: (id: string) => apiRequest<DataSource>(`/api/datasources/${id}`),
     
@@ -514,8 +534,6 @@ export const api = {
     
     getVideoStreamUrl: async (videoId: string) => {
       // Get presigned URL for direct S3 access
-      const baseUrl = import.meta.env.VITE_API_BASE_URL || 'https://oi6057c2vf.execute-api.us-east-1.amazonaws.com/dev';
-      const cleanBaseUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
       
       try {
         // Get authentication token
