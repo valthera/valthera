@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 import { signIn, signUp, signOut, getCurrentUser, confirmSignUp, resetPassword, confirmResetPassword } from 'aws-amplify/auth'
-import { fetchUserAttributes } from 'aws-amplify/auth'
+import { fetchUserAttributes, fetchAuthSession } from 'aws-amplify/auth'
 
 interface User {
   id: string
@@ -141,11 +141,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Use default flow for production
         await signIn({ username: email, password })
       }
-      
-      const userProfile = await getUserProfile()
-      if (userProfile) {
-        setSession({ user: await getCurrentUser() })
-      }
+
+      // Ensure tokens are available immediately after sign-in
+      const authSession = await fetchAuthSession()
+      setSession({ user: await getCurrentUser(), tokens: authSession.tokens })
+      await getUserProfile()
       return {}
     } catch (error) {
       console.error('Sign in error:', error)
