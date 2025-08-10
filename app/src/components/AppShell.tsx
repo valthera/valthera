@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from './ui/button';
@@ -39,6 +39,7 @@ export function AppShell({ children }: AppShellProps) {
   const location = useLocation();
   const [projectsExpanded, setProjectsExpanded] = useState(false);
   const isAIAssistantEnabled = useFeatureFlag('aiResearchAssistant');
+  const prevAIAssistantEnabledRef = useRef(isAIAssistantEnabled);
   
 
   
@@ -82,6 +83,15 @@ export function AppShell({ children }: AppShellProps) {
       setChatOpen(isAIAssistantEnabled && (savedChat !== null ? JSON.parse(savedChat) : true));
       setChatWidth(savedChatWidth !== null ? JSON.parse(savedChatWidth) : 320);
     }
+  }, [isMobile, isAIAssistantEnabled]);
+
+  // When the feature flag is toggled ON (e.g., via URL), auto-open the panel
+  useEffect(() => {
+    const wasEnabled = prevAIAssistantEnabledRef.current;
+    if (!isMobile && isAIAssistantEnabled && !wasEnabled) {
+      setChatOpen(true);
+    }
+    prevAIAssistantEnabledRef.current = isAIAssistantEnabled;
   }, [isMobile, isAIAssistantEnabled]);
 
   // Persist state to localStorage
@@ -461,7 +471,12 @@ export function AppShell({ children }: AppShellProps) {
 
       {/* Feature Flag Toggle (Development Only) */}
       {import.meta.env.DEV && (
-        <div className="fixed bottom-4 right-4 z-50">
+        <div
+          className="fixed bottom-4 z-50"
+          style={{
+            right: chatOpen && !isMobile && isAIAssistantEnabled ? `${chatWidth + 16}px` : '16px'
+          }}
+        >
           <FeatureFlagToggle />
         </div>
       )}

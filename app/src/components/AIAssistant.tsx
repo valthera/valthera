@@ -267,11 +267,11 @@ export function AIAssistant() {
   };
 
   return (
-    <div className="flex flex-col h-full bg-white border-l border-gray-200">
+    <div className="flex flex-col h-full bg-background border-l border-border">
       {/* Header */}
-      <div className="p-4 border-b border-gray-200 bg-gray-50">
-        <h3 className="font-medium text-black">AI Research Assistant</h3>
-        <p className="text-xs text-gray-600 mt-1">
+      <div className="p-4 border-b border-border bg-accent">
+        <h3 className="font-medium text-foreground">AI Research Assistant</h3>
+        <p className="text-xs text-muted-foreground mt-1">
           Analyze training data • Suggest improvements • Interpret results
         </p>
       </div>
@@ -287,8 +287,8 @@ export function AIAssistant() {
               <div
                 className={`max-w-[80%] rounded-lg px-3 py-2 text-sm ${
                   message.role === 'user'
-                    ? 'bg-black text-white'
-                    : 'bg-gray-100 text-black border border-gray-200'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-accent text-foreground border border-border'
                 }`}
               >
                 <div className="whitespace-pre-wrap">{message.content}</div>
@@ -299,15 +299,15 @@ export function AIAssistant() {
                     {message.workflow.map((step) => (
                       <div key={step.id} className="flex items-center space-x-2 text-xs">
                         {step.status === 'completed' && (
-                          <CheckCircle className="h-3 w-3 text-green-600" />
+                          <CheckCircle className="h-3 w-3 text-green-600 dark:text-green-400" />
                         )}
                         {step.status === 'in_progress' && (
-                          <Clock className="h-3 w-3 text-blue-600 animate-spin" />
+                          <Clock className="h-3 w-3 text-blue-600 dark:text-blue-400 animate-spin" />
                         )}
                         {step.status === 'pending' && (
-                          <div className="h-3 w-3 rounded-full border border-gray-300" />
+                          <div className="h-3 w-3 rounded-full border border-border" />
                         )}
-                        <span className={step.status === 'completed' ? 'text-green-700' : 'text-gray-600'}>
+                        <span className="text-muted-foreground">
                           {step.label}
                         </span>
                       </div>
@@ -317,7 +317,7 @@ export function AIAssistant() {
                 
                 {/* Chart */}
                 {message.chart && (
-                  <div className="mt-3 bg-white rounded border p-2">
+                  <div className="mt-3 bg-background rounded border border-border p-2">
                     {message.chart}
                   </div>
                 )}
@@ -332,8 +332,8 @@ export function AIAssistant() {
                           to={action.href}
                           className={`inline-flex items-center space-x-1 px-3 py-1.5 rounded text-xs font-medium transition-colors ${
                             action.variant === 'outline'
-                              ? 'border border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
-                              : 'bg-black text-white hover:bg-gray-800'
+                              ? 'border border-border bg-background text-foreground hover:bg-accent'
+                              : 'bg-primary text-primary-foreground hover:bg-primary/90'
                           }`}
                         >
                           <span>{action.label}</span>
@@ -361,7 +361,7 @@ export function AIAssistant() {
       </div>
 
       {/* Input */}
-      <div className="p-4 border-t border-gray-200">
+      <div className="p-4 border-t border-border bg-background">
         <div className="flex space-x-2">
           <Input
             value={input}
@@ -373,7 +373,7 @@ export function AIAssistant() {
           <Button
             onClick={handleSend}
             size="sm"
-            className="bg-black hover:bg-gray-800"
+            className="bg-primary text-primary-foreground hover:bg-primary/90"
             disabled={!input.trim()}
           >
             <Send className="h-4 w-4" />

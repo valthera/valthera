@@ -204,13 +204,13 @@ export function ConceptDetailPage() {
 
   const getTrainingStatus = (count: number) => {
     if (count < VJEPA_REQUIREMENTS.minimum) {
-      return { status: 'insufficient', color: 'text-red-600', bgColor: 'bg-red-100', icon: XCircle };
+      return { status: 'insufficient', color: 'text-red-600 dark:text-red-300', bgColor: 'bg-red-100 dark:bg-red-950/20', icon: XCircle };
     } else if (count < VJEPA_REQUIREMENTS.recommended) {
-      return { status: 'minimum', color: 'text-yellow-600', bgColor: 'bg-yellow-100', icon: AlertTriangle };
+      return { status: 'minimum', color: 'text-yellow-600 dark:text-yellow-300', bgColor: 'bg-yellow-100 dark:bg-yellow-950/20', icon: AlertTriangle };
     } else if (count < VJEPA_REQUIREMENTS.optimal) {
-      return { status: 'good', color: 'text-green-600', bgColor: 'bg-green-100', icon: CheckCircle };
+      return { status: 'good', color: 'text-green-600 dark:text-green-300', bgColor: 'bg-green-100 dark:bg-green-950/20', icon: CheckCircle };
     } else {
-      return { status: 'optimal', color: 'text-blue-600', bgColor: 'bg-blue-100', icon: CheckCircle };
+      return { status: 'optimal', color: 'text-blue-600 dark:text-blue-300', bgColor: 'bg-blue-100 dark:bg-blue-950/20', icon: CheckCircle };
     }
   };
 
@@ -285,7 +285,7 @@ export function ConceptDetailPage() {
       )}
 
       {/* Training Status Overview */}
-      <Card className={`border-l-4 ${trainingStatus.bgColor} border-l-gray-400`}>
+      <Card className={`border-l-4 ${trainingStatus.bgColor}`}>
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center space-x-2">
@@ -302,27 +302,27 @@ export function ConceptDetailPage() {
             <Progress value={progressValue} className="h-3" />
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-              <div className="text-center">
-                <div className={`font-medium ${linkedVideos.length >= VJEPA_REQUIREMENTS.minimum ? 'text-green-600' : 'text-red-600'}`}>
+              <div className="text-center p-2 bg-red-50 dark:bg-red-950/20 rounded">
+                <div className={`font-medium ${linkedVideos.length >= VJEPA_REQUIREMENTS.minimum ? 'text-green-600 dark:text-green-300' : 'text-red-600 dark:text-red-300'}`}>
                   {VJEPA_REQUIREMENTS.minimum}+ Required
                 </div>
-                <div className="text-gray-500">Minimum for training</div>
+                <div className="text-muted-foreground">Minimum for training</div>
               </div>
-              <div className="text-center">
-                <div className={`font-medium ${linkedVideos.length >= VJEPA_REQUIREMENTS.recommended ? 'text-green-600' : 'text-yellow-600'}`}>
+              <div className="text-center p-2 bg-yellow-50 dark:bg-yellow-950/20 rounded">
+                <div className={`font-medium ${linkedVideos.length >= VJEPA_REQUIREMENTS.recommended ? 'text-green-600 dark:text-green-300' : 'text-yellow-600 dark:text-yellow-300'}`}>
                   {VJEPA_REQUIREMENTS.recommended}+ Recommended
                 </div>
-                <div className="text-gray-500">Good performance</div>
+                <div className="text-muted-foreground">Good performance</div>
               </div>
-              <div className="text-center">
-                <div className={`font-medium ${linkedVideos.length >= VJEPA_REQUIREMENTS.optimal ? 'text-blue-600' : 'text-gray-600'}`}>
+              <div className="text-center p-2 bg-green-50 dark:bg-green-950/20 rounded">
+                <div className={`font-medium ${linkedVideos.length >= VJEPA_REQUIREMENTS.optimal ? 'text-blue-600 dark:text-blue-300' : 'text-muted-foreground'}`}>
                   {VJEPA_REQUIREMENTS.optimal}+ Optimal
                 </div>
-                <div className="text-gray-500">Best results</div>
+                <div className="text-muted-foreground">Best results</div>
               </div>
             </div>
 
-            <div className="bg-gray-50 p-3 rounded text-sm text-gray-700">
+            <div className="bg-accent p-3 rounded text-sm text-muted-foreground">
               <strong>About VJEPA:</strong> {VJEPA_REQUIREMENTS.description}. More samples generally lead to better feature learning and classification accuracy.
             </div>
           </div>
@@ -341,19 +341,19 @@ export function ConceptDetailPage() {
           <CardContent>
             {linkedVideos.length === 0 ? (
               <div className="text-center py-8">
-                <Video className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-                <p className="text-gray-500 mb-2">No videos linked to this concept</p>
-                <p className="text-sm text-gray-400">Select videos from available pool →</p>
+                <Video className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
+                <p className="text-muted-foreground mb-2">No videos linked to this concept</p>
+                <p className="text-sm text-muted-foreground">Select videos from available pool →</p>
               </div>
             ) : (
               <div className="space-y-2 max-h-96 overflow-y-auto">
                 {linkedVideos.map((video) => (
-                  <div key={video.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div key={video.id} className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-950/20 rounded-lg">
                     <div className="flex items-center space-x-3">
-                      <Video className="h-4 w-4 text-gray-600" />
+                      <Video className="h-4 w-4 text-muted-foreground" />
                       <div>
-                        <div className="text-sm font-medium text-gray-900">{video.name}</div>
-                        <div className="text-xs text-gray-500">
+                        <div className="text-sm font-medium text-foreground">{video.name}</div>
+                        <div className="text-xs text-muted-foreground">
                           {video.source} • {video.duration} • {video.size}
                         </div>
                       </div>
@@ -370,7 +370,7 @@ export function ConceptDetailPage() {
                       <Button 
                         variant="ghost" 
                         size="sm" 
-                        className="p-1 text-red-600 hover:text-red-700"
+                        className="p-1 text-destructive hover:text-destructive/80"
                         onClick={() => handleVideoToggle(video.id)}
                         disabled={isLinking}
                       >
@@ -392,7 +392,7 @@ export function ConceptDetailPage() {
                 <Plus className="h-5 w-5" />
                 <span>Available Videos</span>
               </div>
-              <span className="text-sm font-normal text-gray-500">
+              <span className="text-sm font-normal text-muted-foreground">
                 {filteredAvailableVideos.length} available
               </span>
             </CardTitle>
@@ -402,7 +402,7 @@ export function ConceptDetailPage() {
               {/* Search and Filter */}
               <div className="flex space-x-2">
                 <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     placeholder="Search videos..."
                     value={searchTerm}
@@ -413,7 +413,7 @@ export function ConceptDetailPage() {
                 <select
                   value={selectedSource}
                   onChange={(e) => setSelectedSource(e.target.value)}
-                  className="px-3 py-2 border border-gray-300 rounded-md text-sm"
+                  className="px-3 py-2 border border-input rounded-md bg-background text-foreground text-sm"
                 >
                   <option value="">All sources</option>
                   <option value="robot_arm_samples">robot_arm_samples</option>
@@ -425,18 +425,18 @@ export function ConceptDetailPage() {
               {/* Available Videos List */}
               {filteredAvailableVideos.length === 0 ? (
                 <div className="text-center py-8">
-                  <Filter className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-                  <p className="text-gray-500">No available videos match your filters</p>
+                  <Filter className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
+                  <p className="text-muted-foreground">No available videos match your filters</p>
                 </div>
               ) : (
                 <div className="space-y-2 max-h-96 overflow-y-auto">
                   {filteredAvailableVideos.map((video) => (
-                    <div key={video.id} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                    <div key={video.id} className="flex items-center justify-between p-3 border border-border rounded-lg hover:bg-accent transition-colors">
                       <div className="flex items-center space-x-3">
-                        <Video className="h-4 w-4 text-gray-600" />
+                        <Video className="h-4 w-4 text-muted-foreground" />
                         <div>
-                          <div className="text-sm font-medium text-gray-900">{video.name}</div>
-                          <div className="text-xs text-gray-500">
+                          <div className="text-sm font-medium text-foreground">{video.name}</div>
+                          <div className="text-xs text-muted-foreground">
                             {video.source} • {video.duration} • {video.size}
                           </div>
                         </div>

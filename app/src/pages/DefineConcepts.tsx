@@ -26,11 +26,26 @@ const VJEPA_REQUIREMENTS = {
 function ConceptCard({ concept, projectId, linkedVideoCount }: ConceptCardProps) {
   const getTrainingStatus = (count: number) => {
     if (count < VJEPA_REQUIREMENTS.minimum) {
-      return { status: 'insufficient', color: 'text-red-600', bgColor: 'bg-red-100', icon: XCircle };
+      return {
+        status: 'insufficient',
+        color: 'text-red-600 dark:text-red-300',
+        bgColor: 'bg-red-100 dark:bg-red-950/20',
+        icon: XCircle,
+      };
     } else if (count < VJEPA_REQUIREMENTS.recommended) {
-      return { status: 'minimum', color: 'text-yellow-600', bgColor: 'bg-yellow-100', icon: AlertTriangle };
+      return {
+        status: 'minimum',
+        color: 'text-yellow-600 dark:text-yellow-300',
+        bgColor: 'bg-yellow-100 dark:bg-yellow-950/20',
+        icon: AlertTriangle,
+      };
     } else {
-      return { status: 'good', color: 'text-green-600', bgColor: 'bg-green-100', icon: CheckCircle };
+      return {
+        status: 'good',
+        color: 'text-green-600 dark:text-green-300',
+        bgColor: 'bg-green-100 dark:bg-green-950/20',
+        icon: CheckCircle,
+      };
     }
   };
 
@@ -74,7 +89,7 @@ function ConceptCard({ concept, projectId, linkedVideoCount }: ConceptCardProps)
           </div>
 
           {/* Status Summary */}
-          <div className={`p-3 rounded-lg ${trainingStatus.bgColor} border`}>
+          <div className={`p-3 rounded-lg ${trainingStatus.bgColor} border border-border`}>
             <div className="flex items-center space-x-2 text-sm">
               <StatusIcon className={`h-4 w-4 ${trainingStatus.color}`} />
               <span className={`font-medium ${trainingStatus.color}`}>
