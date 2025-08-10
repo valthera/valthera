@@ -7,6 +7,7 @@ import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
 import { Alert, AlertDescription } from '../components/ui/alert'
 import { Eye, EyeOff, AlertCircle, Mail } from 'lucide-react'
+import { useTheme } from '../contexts/ThemeContext'
 
 export function SignUp() {
   const [email, setEmail] = useState('')
@@ -20,6 +21,7 @@ export function SignUp() {
   const [showConfirmation, setShowConfirmation] = useState(false)
   const { signUp, confirmSignUp } = useAuth()
   const navigate = useNavigate()
+  const { theme } = useTheme()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -75,15 +77,32 @@ export function SignUp() {
   if (showConfirmation) {
     return (
       <AuthShell>
-        <div className="bg-white rounded-lg border border-gray-200 p-8 shadow-sm">
+        <div className={`
+          rounded-lg border p-8 shadow-sm transition-colors duration-200
+          ${theme === 'dark' 
+            ? 'bg-gray-800 border-gray-600' 
+            : 'bg-white border-gray-200'
+          }
+        `}>
           <div className="text-center mb-8">
-            <div className="mx-auto w-12 h-12 bg-black rounded-full flex items-center justify-center mb-4">
-              <Mail className="h-6 w-6 text-white" />
+            <div className={`
+              mx-auto w-12 h-12 rounded-full flex items-center justify-center mb-4
+              ${theme === 'dark' 
+                ? 'bg-white text-black' 
+                : 'bg-black text-white'
+              }
+            `}>
+              <Mail className="h-6 w-6" />
             </div>
-            <h1 className="text-2xl font-bold text-black mb-2">
+            <h1 className={`
+              text-2xl font-bold mb-2
+              ${theme === 'dark' ? 'text-white' : 'text-black'}
+            `}>
               Check your email
             </h1>
-            <p className="text-gray-600">
+            <p className={`
+              ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}
+            `}>
               We've sent a confirmation code to <strong>{email}</strong>
             </p>
           </div>
@@ -97,7 +116,11 @@ export function SignUp() {
 
           <form onSubmit={handleConfirmation} className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="confirmationCode">Confirmation Code</Label>
+              <Label htmlFor="confirmationCode" className={`
+                ${theme === 'dark' ? 'text-white' : 'text-black'}
+              `}>
+                Confirmation Code
+              </Label>
               <Input
                 id="confirmationCode"
                 type="text"
@@ -135,12 +158,23 @@ export function SignUp() {
 
   return (
     <AuthShell>
-      <div className="bg-white rounded-lg border border-gray-200 p-8 shadow-sm">
+      <div className={`
+        rounded-lg border p-8 shadow-sm transition-colors duration-200
+        ${theme === 'dark' 
+          ? 'bg-gray-800 border-gray-600' 
+          : 'bg-white border-gray-200'
+        }
+      `}>
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-black mb-2">
+          <h1 className={`
+            text-2xl font-bold mb-2
+            ${theme === 'dark' ? 'text-white' : 'text-black'}
+          `}>
             Create your account
           </h1>
-          <p className="text-gray-600">
+          <p className={`
+            ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}
+          `}>
             Start building with AI perception models in minutes
           </p>
         </div>
@@ -154,7 +188,11 @@ export function SignUp() {
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-2">
-            <Label htmlFor="email">Email address</Label>
+            <Label htmlFor="email" className={`
+              ${theme === 'dark' ? 'text-white' : 'text-black'}
+            `}>
+              Email address
+            </Label>
             <Input
               id="email"
               type="email"
@@ -168,7 +206,11 @@ export function SignUp() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
+            <Label htmlFor="password" className={`
+              ${theme === 'dark' ? 'text-white' : 'text-black'}
+            `}>
+              Password
+            </Label>
             <div className="relative">
               <Input
                 id="password"
@@ -192,7 +234,11 @@ export function SignUp() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="confirmPassword">Confirm Password</Label>
+            <Label htmlFor="confirmPassword" className={`
+              ${theme === 'dark' ? 'text-white' : 'text-black'}
+            `}>
+              Confirm Password
+            </Label>
             <div className="relative">
               <Input
                 id="confirmPassword"
@@ -225,7 +271,9 @@ export function SignUp() {
         </form>
 
         <div className="mt-8 text-center">
-          <p className="text-gray-600">
+          <p className={`
+            ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}
+          `}>
             Already have an account?{' '}
             <Link to="/signin" className="text-black font-medium hover:underline">
               Sign in

@@ -37,17 +37,17 @@ export function ClassifiersPage() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'ready': return 'bg-green-100 text-green-800';
-      case 'training': return 'bg-yellow-100 text-yellow-800';
-      case 'failed': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'active': return 'bg-green-100 text-green-800';
+      case 'training': return 'bg-blue-100 text-blue-800';
+      case 'error': return 'bg-red-100 text-red-800';
+      default: return 'bg-muted text-muted-foreground';
     }
   };
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
-        <div className="text-gray-500">Loading classifiers...</div>
+        <div className="text-muted-foreground">Loading classifiers...</div>
       </div>
     );
   }
@@ -55,140 +55,111 @@ export function ClassifiersPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-black">Classifiers</h1>
-          <p className="text-gray-600 mt-1">
-            Manage all your trained behavior classifiers across projects
-          </p>
-        </div>
-        
-        <Button asChild className="bg-black text-white hover:bg-gray-800">
-          <Link to="/dashboard">
-            <Plus className="mr-2 h-4 w-4" />
-            New Project
-          </Link>
-        </Button>
+      <div>
+        <h1 className="text-3xl font-bold text-foreground">Classifiers</h1>
+        <p className="text-muted-foreground mt-1">
+          Manage and monitor your trained classification models
+        </p>
       </div>
 
-      {/* Classifiers Overview */}
+      {/* No Classifiers State */}
       {endpoints.length === 0 ? (
-        <Card className="border border-gray-200">
+        <Card className="border">
           <CardContent className="text-center py-12">
-            <Target className="mx-auto h-16 w-16 text-gray-400 mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No classifiers yet</h3>
-            <p className="text-gray-600 mb-6">
-              Create a project and train behaviors to generate classifiers
+            <Target className="mx-auto h-16 w-16 text-muted-foreground mb-4" />
+            <h3 className="text-lg font-medium text-foreground mb-2">No classifiers yet</h3>
+            <p className="text-muted-foreground mb-6">
+              Train your first classifier to start classifying videos
             </p>
-            
-            <div className="space-y-4">
-              <div className="flex items-center justify-center space-x-2 text-sm text-gray-500">
-                <span className="flex items-center">
-                  <span className="w-6 h-6 rounded-full bg-gray-200 text-xs flex items-center justify-center mr-2">1</span>
-                  Create Project
-                </span>
-                <ArrowRight className="h-4 w-4" />
-                <span className="flex items-center">
-                  <span className="w-6 h-6 rounded-full bg-gray-200 text-xs flex items-center justify-center mr-2">2</span>
-                  Define Behaviors
-                </span>
-                <ArrowRight className="h-4 w-4" />
-                <span className="flex items-center">
-                  <span className="w-6 h-6 rounded-full bg-gray-200 text-xs flex items-center justify-center mr-2">3</span>
-                  Train Models
-                </span>
-              </div>
-              
-              <Button asChild className="bg-black text-white hover:bg-gray-800">
-                <Link to="/dashboard">
-                  <Plus className="mr-2 h-4 w-4" />
-                  Create Your First Project
-                </Link>
-              </Button>
+            <div className="flex items-center justify-center space-x-2 text-sm text-muted-foreground">
+              <span>Start by:</span>
+              <Link to="/training" className="text-primary hover:underline">
+                Training a model
+              </Link>
+              <span>or</span>
+              <Link to="/endpoints" className="text-primary hover:underline">
+                Creating an endpoint
+              </Link>
             </div>
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-6">
-          {/* Summary Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card className="border border-gray-200">
-              <CardContent className="p-4">
-                <div className="text-2xl font-bold text-black">{endpoints.length}</div>
-                <div className="text-sm text-gray-600">Total Classifiers</div>
+        <>
+          {/* Stats Overview */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <Card className="border">
+              <CardContent className="pt-6">
+                <div className="text-2xl font-bold text-foreground">{endpoints.length}</div>
+                <div className="text-sm text-muted-foreground">Total Classifiers</div>
               </CardContent>
             </Card>
-            <Card className="border border-gray-200">
-              <CardContent className="p-4">
-                <div className="text-2xl font-bold text-black">
-                  {endpoints.filter(e => e.status === 'ready').length}
+            
+            <Card className="border">
+              <CardContent className="pt-6">
+                <div className="text-2xl font-bold text-foreground">
+                  {endpoints.filter(e => e.status === 'active').length}
                 </div>
-                <div className="text-sm text-gray-600">Ready for Use</div>
+                <div className="text-sm text-muted-foreground">Ready for Use</div>
               </CardContent>
             </Card>
-            <Card className="border border-gray-200">
-              <CardContent className="p-4">
-                <div className="text-2xl font-bold text-black">
-                  {endpoints.filter(e => e.status === 'ready').reduce((sum, e) => sum + e.accuracy, 0) / 
-                   endpoints.filter(e => e.status === 'ready').length || 0}%
+            
+            <Card className="border">
+              <CardContent className="pt-6">
+                <div className="text-2xl font-bold text-foreground">
+                  {averageAccuracy.toFixed(1)}%
                 </div>
-                <div className="text-sm text-gray-600">Average Accuracy</div>
+                <div className="text-sm text-muted-foreground">Average Accuracy</div>
               </CardContent>
             </Card>
           </div>
 
-          {/* Classifiers Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {endpoints.map((endpoint) => {
-              const project = projects.find(p => p.id === endpoint.projectId);
-              
-              return (
-                <Card key={endpoint.id} className="border border-gray-200 hover:border-gray-300 transition-colors">
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-lg text-black">
-                        {endpoint.classifierName}
+          {/* Classifiers List */}
+          <div className="space-y-4">
+            {endpoints.map((endpoint) => (
+              <Card key={endpoint.id} className="border hover:border-border/60 transition-colors">
+                <CardContent className="pt-6">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <CardTitle className="text-lg text-foreground">
+                        {endpoint.name}
                       </CardTitle>
-                      <Badge className={getStatusColor(endpoint.status)}>
-                        {endpoint.status}
-                      </Badge>
-                    </div>
-                    <div className="text-sm text-gray-600">
-                      Project: {project?.name}
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      {endpoint.status === 'ready' && (
-                        <div className="text-sm">
-                          <span className="text-gray-600">Accuracy: </span>
-                          <span className="font-medium text-green-600">
-                            {endpoint.accuracy.toFixed(1)}%
-                          </span>
+                      <div className="mt-2 space-y-2">
+                        <div className="text-sm text-muted-foreground">
+                          <span className="font-medium">Project:</span> {endpoint.project_name}
                         </div>
-                      )}
-                      
-                      <div className="text-sm text-gray-600">
-                        Created {new Date(endpoint.createdAt).toLocaleDateString()}
+                        <div className="text-sm text-muted-foreground">
+                          <span className="font-medium">Status:</span>{' '}
+                          <Badge className={getStatusColor(endpoint.status)}>
+                            {endpoint.status}
+                          </Badge>
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          <span className="text-muted-foreground">Accuracy: </span>
+                          <span className="font-medium">{endpoint.accuracy?.toFixed(1) || 'N/A'}%</span>
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          <span className="font-medium">Created:</span>{' '}
+                          {new Date(endpoint.created_at * 1000).toLocaleDateString()}
+                        </div>
                       </div>
-
-                      <Button
-                        asChild
-                        variant="outline"
-                        className="w-full"
-                        disabled={endpoint.status !== 'ready'}
-                      >
-                        <Link to={`/projects/${endpoint.projectId}/endpoints`}>
-                          View Details
-                        </Link>
-                      </Button>
                     </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
+
+                    <Button
+                      asChild
+                      variant="outline"
+                      className="w-full"
+                      disabled={endpoint.status !== 'ready'}
+                    >
+                      <Link to={`/projects/${endpoint.projectId}/endpoints`}>
+                        View Details
+                      </Link>
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
-        </div>
+        </>
       )}
     </div>
   );

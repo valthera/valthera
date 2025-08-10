@@ -247,23 +247,23 @@ export function ConceptDetailPage() {
         <div className="flex items-center space-x-4">
           <Link 
             to={`/projects/${projectId}/concepts`}
-            className="flex items-center space-x-2 text-gray-600 hover:text-black transition-colors"
+            className="flex items-center space-x-2 text-muted-foreground hover:text-foreground transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />
             <span>Back to Concepts</span>
           </Link>
-          <div className="h-6 w-px bg-gray-300" />
+          <div className="h-6 w-px bg-border" />
           <div>
-            <h1 className="text-2xl font-bold text-black">{concept.name}</h1>
-            <p className="text-gray-600">{projectName}</p>
+            <h1 className="text-2xl font-bold text-foreground">{concept.name}</h1>
+            <p className="text-muted-foreground">{projectName}</p>
           </div>
         </div>
       </div>
 
       {/* Video Preview Modal */}
       {previewVideo && previewVideoUrl && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-6xl w-full mx-4">
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+          <div className="bg-background border border-border rounded-lg p-6 max-w-6xl w-full mx-4">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold">Video Preview</h3>
               <Button variant="ghost" size="sm" onClick={closeVideoPreview}>

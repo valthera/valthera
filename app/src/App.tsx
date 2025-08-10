@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { AuthProvider } from './contexts/AuthContext'
 import { ProjectsProvider } from './contexts/ProjectsContext'
 import { FeatureFlagProvider } from './contexts/FeatureFlagsContext'
+import { ThemeProvider } from './contexts/ThemeContext'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { PublicRoute } from './components/PublicRoute'
 import { AppShell } from './components/AppShell'
@@ -25,186 +26,188 @@ import './App.css'
 
 function App() {
   return (
-    <FeatureFlagProvider>
-      <AuthProvider>
-        <ProjectsProvider>
-          <Router>
-            <div className="App">
-              <Routes>
-            {/* Public Routes */}
-            <Route
-              path="/"
-              element={
-                <PublicRoute>
-                  <Landing />
-                </PublicRoute>
-              }
-            />
-            <Route
-              path="/signin"
-              element={
-                <PublicRoute>
-                  <SignIn />
-                </PublicRoute>
-              }
-            />
-            <Route
-              path="/signup"
-              element={
-                <PublicRoute>
-                  <SignUp />
-                </PublicRoute>
-              }
-            />
-            <Route
-              path="/forgot-password"
-              element={
-                <PublicRoute>
-                  <ForgotPassword />
-                </PublicRoute>
-              }
-            />
+    <ThemeProvider>
+      <FeatureFlagProvider>
+        <AuthProvider>
+          <ProjectsProvider>
+            <Router>
+              <div className="App">
+                <Routes>
+              {/* Public Routes */}
+              <Route
+                path="/"
+                element={
+                  <PublicRoute>
+                    <Landing />
+                  </PublicRoute>
+                }
+              />
+              <Route
+                path="/signin"
+                element={
+                  <PublicRoute>
+                    <SignIn />
+                  </PublicRoute>
+                }
+              />
+              <Route
+                path="/signup"
+                element={
+                  <PublicRoute>
+                    <SignUp />
+                  </PublicRoute>
+                }
+              />
+              <Route
+                path="/forgot-password"
+                element={
+                  <PublicRoute>
+                    <ForgotPassword />
+                  </PublicRoute>
+                }
+              />
 
-            {/* Protected Routes - Dashboard */}
-            <Route
-              path="/dashboard"
-              element={
-                <ProtectedRoute>
-                  <AppShell>
-                    <ProjectsDashboard />
-                  </AppShell>
-                </ProtectedRoute>
-              }
-            />
-            
-            {/* Global Overview Pages */}
-            <Route
-              path="/classifiers"
-              element={
-                <ProtectedRoute>
-                  <AppShell>
-                    <ClassifiersPage />
-                  </AppShell>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/training"
-              element={
-                <ProtectedRoute>
-                  <AppShell>
-                    <TrainingOverviewPage />
-                  </AppShell>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/endpoints"
-              element={
-                <ProtectedRoute>
-                  <AppShell>
-                    <EndpointsOverviewPage />
-                  </AppShell>
-                </ProtectedRoute>
-              }
-            />
+              {/* Protected Routes - Dashboard */}
+              <Route
+                path="/dashboard"
+                element={
+                  <ProtectedRoute>
+                    <AppShell>
+                      <ProjectsDashboard />
+                    </AppShell>
+                  </ProtectedRoute>
+                }
+              />
+              
+              {/* Global Overview Pages */}
+              <Route
+                path="/classifiers"
+                element={
+                  <ProtectedRoute>
+                    <AppShell>
+                      <ClassifiersPage />
+                    </AppShell>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/training"
+                element={
+                  <ProtectedRoute>
+                    <AppShell>
+                      <TrainingOverviewPage />
+                    </AppShell>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/endpoints"
+                element={
+                  <ProtectedRoute>
+                    <AppShell>
+                      <EndpointsPage />
+                    </AppShell>
+                  </ProtectedRoute>
+                }
+              />
 
-            {/* Data Sources */}
-            <Route
-              path="/data-sources"
-              element={
-                <ProtectedRoute>
-                  <AppShell>
-                    <DataSourcesPage />
-                  </AppShell>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/data-sources/:id"
-              element={
-                <ProtectedRoute>
-                  <AppShell>
-                    <DataSourceFolderPage />
-                  </AppShell>
-                </ProtectedRoute>
-              }
-            />
+              {/* Data Sources */}
+              <Route
+                path="/data-sources"
+                element={
+                  <ProtectedRoute>
+                    <AppShell>
+                      <DataSourcesPage />
+                    </AppShell>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/data-sources/:id"
+                element={
+                  <ProtectedRoute>
+                    <AppShell>
+                      <DataSourceFolderPage />
+                    </AppShell>
+                  </ProtectedRoute>
+                }
+              />
 
-            {/* Project Routes */}
-            <Route
-              path="/projects/:projectId/concepts"
-              element={
-                <ProtectedRoute>
-                  <AppShell>
-                    <DefineConcepts />
-                  </AppShell>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/projects/:projectId/concepts/:conceptId"
-              element={
-                <ProtectedRoute>
-                  <AppShell>
-                    <ConceptDetailPage />
-                  </AppShell>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/projects/:projectId/training"
-              element={
-                <ProtectedRoute>
-                  <AppShell>
-                    <TrainingPage />
-                  </AppShell>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/projects/:projectId/endpoints"
-              element={
-                <ProtectedRoute>
-                  <AppShell>
-                    <EndpointsPage />
-                  </AppShell>
-                </ProtectedRoute>
-              }
-            />
-            
-            {/* API Keys */}
-            <Route
-              path="/api-keys"
-              element={
-                <ProtectedRoute>
-                  <AppShell>
-                    <ApiKeysPage />
-                  </AppShell>
-                </ProtectedRoute>
-              }
-            />
-            
-            {/* Settings */}
-            <Route
-              path="/settings"
-              element={
-                <ProtectedRoute>
-                  <AppShell>
-                    <SettingsPageNew />
-                  </AppShell>
-                </ProtectedRoute>
-              }
-            />
-            
-            {/* Redirect all other routes to root */}
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </div>
-      </Router>
-        </ProjectsProvider>
-      </AuthProvider>
-      </FeatureFlagProvider>
+              {/* Project Routes */}
+              <Route
+                path="/projects/:projectId/concepts"
+                element={
+                  <ProtectedRoute>
+                    <AppShell>
+                      <DefineConcepts />
+                    </AppShell>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/projects/:projectId/concepts/:conceptId"
+                element={
+                  <ProtectedRoute>
+                    <AppShell>
+                      <ConceptDetailPage />
+                    </AppShell>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/projects/:projectId/training"
+                element={
+                  <ProtectedRoute>
+                    <AppShell>
+                      <TrainingPage />
+                    </AppShell>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/projects/:projectId/endpoints"
+                element={
+                  <ProtectedRoute>
+                    <AppShell>
+                      <EndpointsPage />
+                    </AppShell>
+                  </ProtectedRoute>
+                }
+              />
+              
+              {/* API Keys */}
+              <Route
+                path="/api-keys"
+                element={
+                  <ProtectedRoute>
+                    <AppShell>
+                      <ApiKeysPage />
+                    </AppShell>
+                  </ProtectedRoute>
+                }
+              />
+              
+              {/* Settings */}
+              <Route
+                path="/settings"
+                element={
+                  <ProtectedRoute>
+                    <AppShell>
+                      <SettingsPageNew />
+                    </AppShell>
+                  </ProtectedRoute>
+                }
+              />
+              
+              {/* Redirect all other routes to root */}
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </div>
+        </Router>
+          </ProjectsProvider>
+        </AuthProvider>
+        </FeatureFlagProvider>
+    </ThemeProvider>
   )
 }
 

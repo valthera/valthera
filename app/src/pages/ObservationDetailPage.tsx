@@ -210,8 +210,8 @@ export function ObservationDetailPage() {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
-          <p className="mt-4 text-gray-600">Loading observation details...</p>
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-foreground"></div>
+          <p className="mt-4 text-muted-foreground">Loading observation details...</p>
         </div>
       </div>
     );
@@ -241,7 +241,7 @@ export function ObservationDetailPage() {
           </Link>
           <div>
             <h1 className="text-2xl font-bold">{observation.name}</h1>
-            <p className="text-gray-600">{projectName}</p>
+            <p className="text-muted-foreground">{projectName}</p>
           </div>
         </div>
         <Badge variant={trainingStatus.color === 'green' ? 'default' : 'secondary'}>
@@ -306,7 +306,7 @@ export function ObservationDetailPage() {
                   <select
                     value={selectedSource}
                     onChange={(e) => setSelectedSource(e.target.value)}
-                    className="pl-8 pr-8 py-2 border border-gray-300 rounded-md bg-white"
+                    className="pl-8 pr-8 py-2 border border-input rounded-md bg-background text-foreground"
                   >
                     <option value="">All Sources</option>
                     {uniqueSources.map(source => (
@@ -403,8 +403,8 @@ export function ObservationDetailPage() {
 
       {/* Video Preview Modal */}
       {previewVideo && previewVideoUrl && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-4 max-w-4xl w-full mx-4">
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+          <div className="bg-background border border-border rounded-lg p-4 max-w-4xl w-full mx-4">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold">Video Preview</h3>
               <Button variant="outline" size="sm" onClick={closeVideoPreview}>
