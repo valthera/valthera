@@ -58,7 +58,7 @@ RUN pip3 install pyrealsense2
 # Copy the camera module
 COPY camera/ ./camera/
 
-# Create a script to check RealSense devices
+# Create a script to check RealSense devices and start HTTP server
 RUN echo '#!/bin/bash\n\
 echo "Checking RealSense devices..."\n\
 if command -v rs-enumerate-devices >/dev/null 2>&1; then\n\
@@ -66,9 +66,12 @@ if command -v rs-enumerate-devices >/dev/null 2>&1; then\n\
 else\n\
     echo "Warning: rs-enumerate-devices not found (librealsense2-utils not installed or not available for this architecture)"\n\
 fi\n\
-echo "Starting camera application..."\n\
-exec python3 camera/hello_world.py' > /app/start.sh && \
+echo "Starting camera HTTP service on :8000..."\n\
+exec python3 camera/http_server.py' > /app/start.sh && \
     chmod +x /app/start.sh
 
+# Expose HTTP port for health/feed
+EXPOSE 8000
+
 # Set the default command to run the start script
-CMD ["/app/start.sh"] 
+CMD ["/app/start.sh"]

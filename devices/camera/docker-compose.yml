@@ -1,0 +1,22 @@
+version: "3.8"
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  camera:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: valthera/camera:local
+    restart: always
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/health"]
+      interval: 20s
+      timeout: 3s
+      retries: 5
+    logging: *default-logging
+
