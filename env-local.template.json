@@ -32,5 +32,14 @@
   "DatasourceGetFunction": {
     "AWS_ENDPOINT_URL": "http://localhost:8000",
     "S3_ENDPOINT_URL": "http://localhost:4566"
+  },
+  "ListApiKeysFunction": {
+    "API_KEYS_TABLE": "valthera-dev-api-keys"
+  },
+  "CreateApiKeyFunction": {
+    "API_KEYS_TABLE": "valthera-dev-api-keys"
+  },
+  "RevokeApiKeyFunction": {
+    "API_KEYS_TABLE": "valthera-dev-api-keys"
   }
 }

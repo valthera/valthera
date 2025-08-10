@@ -158,7 +158,7 @@ export function SettingsPageNew() {
           <div className="space-y-2">
             <Label>Rate Limiting</Label>
             <div className="text-sm text-gray-600">
-              No rate limits currently enforced. Usage is tracked for billing purposes.
+              No rate limits currently enforced.
             </div>
           </div>
         </CardContent>
@@ -179,7 +179,6 @@ export function SettingsPageNew() {
               <li>• Uploaded videos are processed and then deleted after 30 days</li>
               <li>• Generated embeddings are stored indefinitely</li>
               <li>• API usage logs are retained for 90 days</li>
-              <li>• Billing records are kept for 7 years</li>
             </ul>
           </div>
 

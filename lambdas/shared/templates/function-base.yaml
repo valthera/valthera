@@ -10,6 +10,7 @@ Globals:
       Variables:
         ENVIRONMENT: !Ref Environment
         LOG_LEVEL: INFO
+        API_KEYS_TABLE: !Ref ApiKeysTable
     Tags:
       Project: valthera
       Environment: !Ref Environment
@@ -70,4 +71,22 @@ Policies:
               - s3:PutObject
               - s3:PutObjectAcl
               - s3:DeleteObject
-            Resource: !Sub "${VideoBucket}/*" 
+            Resource: !Sub "${VideoBucket}/*"
+
+  ApiKeysTablePolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: !Sub "${AWS::StackName}-api-keys-table"
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action:
+              - dynamodb:GetItem
+              - dynamodb:PutItem
+              - dynamodb:UpdateItem
+              - dynamodb:DeleteItem
+              - dynamodb:Query
+            Resource: 
+              - !GetAtt ApiKeysTable.Arn
+              - !Sub "${ApiKeysTable.Arn}/index/*" 

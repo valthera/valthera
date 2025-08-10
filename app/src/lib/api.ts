@@ -192,23 +192,23 @@ export interface Endpoint {
 }
 
 export interface ApiKey {
-  id: string;
+  id: string; // Alias for key_id for React component compatibility
+  key_id: string;
   name: string;
-  key: string;
-  createdAt: string;
-  lastUsed?: string;
-  usageCount: number;
+  key?: string; // For display purposes (only available when creating)
+  scopes: string[];
+  created_at: number;
+  createdAt: string; // ISO string for React component compatibility
+  expires_at?: number;
+  expiresAt?: string; // ISO string for React component compatibility
+  revoked: boolean;
+  is_valid: boolean;
+  is_expired: boolean;
+  usageCount?: number; // For display purposes
+  lastUsed?: string; // ISO string for display purposes
 }
 
-export interface BillingRecord {
-  id: string;
-  date: string;
-  description: string;
-  type: 'upload' | 'api_call' | 'training';
-  units: number;
-  unitCost: number;
-  totalCost: number;
-}
+
 
 // API functions
 export const api = {
@@ -309,14 +309,35 @@ export const api = {
 
   // API Keys
   getApiKeys: async (): Promise<ApiKey[]> => {
-    return await apiRequest<ApiKey[]>('/api/keys');
+    const response = await apiRequest<{keys: ApiKey[], message: string, count: number}>('/api/keys');
+    return response.keys;
   },
 
-  createApiKey: async (name: string): Promise<ApiKey> => {
-    return await apiRequest<ApiKey>('/api/keys', {
+  createApiKey: async (name: string, scopes: string[]): Promise<ApiKey> => {
+    const response = await apiRequest<{
+      message: string;
+      key_id: string;
+      display_key: string;
+      name: string;
+      scopes: string[];
+      created_at: number;
+      expires_at?: number;
+    }>('/api/keys', {
       method: 'POST',
-      body: JSON.stringify({ name })
+      body: JSON.stringify({ name, scopes })
     });
+    
+    // Convert the response to match the ApiKey interface
+    return {
+      key_id: response.key_id,
+      name: response.name,
+      scopes: response.scopes,
+      created_at: response.created_at,
+      expires_at: response.expires_at,
+      revoked: false,
+      is_valid: true,
+      is_expired: false
+    };
   },
 
   deleteApiKey: async (keyId: string): Promise<void> => {
@@ -325,14 +346,13 @@ export const api = {
     });
   },
 
-  // Billing
-  getBillingRecords: async (): Promise<BillingRecord[]> => {
-    return await apiRequest<BillingRecord[]>('/api/billing/records');
+  revokeApiKey: async (keyId: string): Promise<void> => {
+    await apiRequest<void>(`/api/keys/${keyId}/revoke`, {
+      method: 'POST'
+    });
   },
 
-  getTotalUsage: async (): Promise<{ totalCost: number; thisMonth: number }> => {
-    return await apiRequest<{ totalCost: number; thisMonth: number }>('/api/billing/usage');
-  },
+
 
   // New API methods for enhanced schema
   projects: {

@@ -37,12 +37,14 @@ export function ApiKeysPage() {
 
     try {
       setCreateLoading(true);
-      const newKey = await api.createApiKey(newKeyName);
+      // Provide default scopes for the API key
+      const defaultScopes = ['read', 'write'];
+      const newKey = await api.createApiKey(newKeyName, defaultScopes);
       setApiKeys([newKey, ...apiKeys]);
       setNewKeyName('');
       setIsCreateModalOpen(false);
       // Show the newly created key
-      setVisibleKeys(new Set([newKey.id]));
+      setVisibleKeys(new Set([newKey.key_id]));
     } catch (error) {
       console.error('Failed to create API key:', error);
     } finally {
@@ -57,7 +59,7 @@ export function ApiKeysPage() {
 
     try {
       await api.deleteApiKey(keyId);
-      setApiKeys(apiKeys.filter(key => key.id !== keyId));
+      setApiKeys(apiKeys.filter(key => key.key_id !== keyId));
       setVisibleKeys(prev => {
         const newSet = new Set(prev);
         newSet.delete(keyId);
@@ -191,30 +193,30 @@ export function ApiKeysPage() {
                 <TableRow>
                   <TableHead>Name</TableHead>
                   <TableHead>Key</TableHead>
-                  <TableHead>Usage</TableHead>
-                  <TableHead>Last Used</TableHead>
+                  <TableHead>Scopes</TableHead>
+                  <TableHead>Status</TableHead>
                   <TableHead>Created</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {apiKeys.map((apiKey) => {
-                  const isVisible = visibleKeys.has(apiKey.id);
+                  const isVisible = visibleKeys.has(apiKey.key_id);
                   
                   return (
-                    <TableRow key={apiKey.id}>
+                    <TableRow key={apiKey.key_id}>
                       <TableCell className="font-medium">
                         {apiKey.name}
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center space-x-2">
                           <code className="text-xs bg-gray-100 px-2 py-1 rounded font-mono">
-                            {isVisible ? apiKey.key : maskKey(apiKey.key)}
+                            {isVisible ? apiKey.key_id : maskKey(apiKey.key_id)}
                           </code>
                           <Button
                             size="sm"
                             variant="ghost"
-                            onClick={() => toggleKeyVisibility(apiKey.id)}
+                            onClick={() => toggleKeyVisibility(apiKey.key_id)}
                           >
                             {isVisible ? (
                               <EyeOff className="h-3 w-3" />
@@ -225,7 +227,7 @@ export function ApiKeysPage() {
                           <Button
                             size="sm"
                             variant="ghost"
-                            onClick={() => copyToClipboard(apiKey.key)}
+                            onClick={() => copyToClipboard(apiKey.key_id)}
                           >
                             <Copy className="h-3 w-3" />
                           </Button>
@@ -233,20 +235,20 @@ export function ApiKeysPage() {
                       </TableCell>
                       <TableCell>
                         <Badge variant="secondary">
-                          {apiKey.usageCount.toLocaleString()} calls
+                          {apiKey.scopes.join(', ')}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-sm text-gray-600">
-                        {apiKey.lastUsed ? new Date(apiKey.lastUsed).toLocaleDateString() : 'Never'}
+                        {apiKey.is_expired ? 'Expired' : 'Active'}
                       </TableCell>
                       <TableCell className="text-sm text-gray-600">
-                        {new Date(apiKey.createdAt).toLocaleDateString()}
+                        {new Date(apiKey.created_at * 1000).toLocaleDateString()}
                       </TableCell>
                       <TableCell>
                         <Button
                           size="sm"
                           variant="ghost"
-                          onClick={() => deleteApiKey(apiKey.id)}
+                          onClick={() => deleteApiKey(apiKey.key_id)}
                           className="text-red-600 hover:text-red-800 hover:bg-red-50"
                         >
                           <Trash2 className="h-3 w-3" />
@@ -306,15 +308,7 @@ with open("video.mp4", "rb") as video_file:
               </div>
             </div>
 
-            <div className="bg-blue-50 p-4 rounded-lg">
-              <h4 className="font-medium text-blue-800 mb-2">Rate Limits & Billing</h4>
-              <ul className="text-sm text-blue-700 space-y-1">
-                <li>• Each API call costs $0.0001</li>
-                <li>• No rate limits currently enforced</li>
-                <li>• Usage is tracked and billed monthly</li>
-                <li>• Monitor your usage on the Billing page</li>
-              </ul>
-            </div>
+
           </CardContent>
         </Card>
       )}
