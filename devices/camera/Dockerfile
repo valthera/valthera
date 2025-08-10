@@ -58,16 +58,18 @@ RUN pip3 install pyrealsense2
 # Copy the camera module
 COPY camera/ ./camera/
 
-# Create a script to check RealSense devices and start HTTP server
+# Create a script to check RealSense devices and start FastAPI server
 RUN echo '#!/bin/bash\n\
+set -e\n\
+PORT="${CAMERA_HTTP_PORT:-8000}"\n\
 echo "Checking RealSense devices..."\n\
 if command -v rs-enumerate-devices >/dev/null 2>&1; then\n\
-    rs-enumerate-devices\n\
+    rs-enumerate-devices || true\n\
 else\n\
     echo "Warning: rs-enumerate-devices not found (librealsense2-utils not installed or not available for this architecture)"\n\
 fi\n\
-echo "Starting camera HTTP service on :8000..."\n\
-exec python3 camera/http_server.py' > /app/start.sh && \
+echo "Starting camera FastAPI service on :$PORT..."\n\
+exec uvicorn camera.server:app --host 0.0.0.0 --port "$PORT"' > /app/start.sh && \
     chmod +x /app/start.sh
 
 # Expose HTTP port for health/feed
