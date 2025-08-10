@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Badge } from '../components/ui/badge';
 import { Plus, Copy, Trash2, Key, Eye, EyeOff } from 'lucide-react';
 import { api, type ApiKey } from '../lib/api';
+import { useTheme } from '../contexts/ThemeContext';
 
 export function ApiKeysPage() {
   const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
@@ -16,6 +17,7 @@ export function ApiKeysPage() {
   const [createLoading, setCreateLoading] = useState(false);
   const [newKeyName, setNewKeyName] = useState('');
   const [visibleKeys, setVisibleKeys] = useState<Set<string>>(new Set());
+  const { theme } = useTheme();
 
   useEffect(() => {
     loadApiKeys();
@@ -37,12 +39,14 @@ export function ApiKeysPage() {
 
     try {
       setCreateLoading(true);
-      const newKey = await api.createApiKey(newKeyName);
+      // Provide default scopes for the API key
+      const defaultScopes = ['read', 'write'];
+      const newKey = await api.createApiKey(newKeyName, defaultScopes);
       setApiKeys([newKey, ...apiKeys]);
       setNewKeyName('');
       setIsCreateModalOpen(false);
       // Show the newly created key
-      setVisibleKeys(new Set([newKey.id]));
+      setVisibleKeys(new Set([newKey.key_id]));
     } catch (error) {
       console.error('Failed to create API key:', error);
     } finally {
@@ -57,7 +61,7 @@ export function ApiKeysPage() {
 
     try {
       await api.deleteApiKey(keyId);
-      setApiKeys(apiKeys.filter(key => key.id !== keyId));
+      setApiKeys(apiKeys.filter(key => key.key_id !== keyId));
       setVisibleKeys(prev => {
         const newSet = new Set(prev);
         newSet.delete(keyId);
@@ -99,7 +103,7 @@ export function ApiKeysPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
-        <div className="text-gray-500">Loading API keys...</div>
+        <div className="text-muted-foreground">Loading API keys...</div>
       </div>
     );
   }
@@ -109,15 +113,15 @@ export function ApiKeysPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-black">API Keys</h1>
-          <p className="text-gray-600 mt-1">
+          <h1 className="text-3xl font-bold text-foreground">API Keys</h1>
+          <p className="text-muted-foreground mt-1">
             Manage your API keys for accessing the Valthera Perception API
           </p>
         </div>
         
         <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
           <DialogTrigger asChild>
-            <Button className="bg-black text-white hover:bg-gray-800">
+            <Button className="bg-primary text-primary-foreground hover:bg-primary/90">
               <Plus className="mr-2 h-4 w-4" />
               Generate Key
             </Button>
@@ -153,7 +157,7 @@ export function ApiKeysPage() {
               <Button
                 onClick={createApiKey}
                 disabled={!newKeyName.trim() || createLoading}
-                className="bg-black text-white hover:bg-gray-800"
+                className="bg-primary text-primary-foreground hover:bg-primary/90"
               >
                 {createLoading ? 'Generating...' : 'Generate Key'}
               </Button>
@@ -164,16 +168,16 @@ export function ApiKeysPage() {
 
       {/* API Keys Table */}
       {apiKeys.length === 0 ? (
-        <Card className="border border-gray-200">
+        <Card className="border">
           <CardContent className="text-center py-12">
-            <Key className="mx-auto h-16 w-16 text-gray-400 mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No API keys</h3>
-            <p className="text-gray-600 mb-4">
+            <Key className="mx-auto h-16 w-16 text-muted-foreground mb-4" />
+            <h3 className="text-lg font-medium text-foreground mb-2">No API keys</h3>
+            <p className="text-muted-foreground mb-4">
               Generate your first API key to start using the Valthera API
             </p>
             <Button
               onClick={() => setIsCreateModalOpen(true)}
-              className="bg-black text-white hover:bg-gray-800"
+              className="bg-primary text-primary-foreground hover:bg-primary/90"
             >
               <Plus className="mr-2 h-4 w-4" />
               Generate Key
@@ -181,7 +185,7 @@ export function ApiKeysPage() {
           </CardContent>
         </Card>
       ) : (
-        <Card className="border border-gray-200">
+        <Card className="border">
           <CardHeader>
             <CardTitle>Your API Keys</CardTitle>
           </CardHeader>
@@ -191,30 +195,30 @@ export function ApiKeysPage() {
                 <TableRow>
                   <TableHead>Name</TableHead>
                   <TableHead>Key</TableHead>
-                  <TableHead>Usage</TableHead>
-                  <TableHead>Last Used</TableHead>
+                  <TableHead>Scopes</TableHead>
+                  <TableHead>Status</TableHead>
                   <TableHead>Created</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {apiKeys.map((apiKey) => {
-                  const isVisible = visibleKeys.has(apiKey.id);
+                  const isVisible = visibleKeys.has(apiKey.key_id);
                   
                   return (
-                    <TableRow key={apiKey.id}>
+                    <TableRow key={apiKey.key_id}>
                       <TableCell className="font-medium">
                         {apiKey.name}
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center space-x-2">
-                          <code className="text-xs bg-gray-100 px-2 py-1 rounded font-mono">
-                            {isVisible ? apiKey.key : maskKey(apiKey.key)}
+                          <code className="text-xs bg-muted px-2 py-1 rounded font-mono">
+                            {isVisible ? apiKey.key_id : maskKey(apiKey.key_id)}
                           </code>
                           <Button
                             size="sm"
                             variant="ghost"
-                            onClick={() => toggleKeyVisibility(apiKey.id)}
+                            onClick={() => toggleKeyVisibility(apiKey.key_id)}
                           >
                             {isVisible ? (
                               <EyeOff className="h-3 w-3" />
@@ -225,7 +229,7 @@ export function ApiKeysPage() {
                           <Button
                             size="sm"
                             variant="ghost"
-                            onClick={() => copyToClipboard(apiKey.key)}
+                            onClick={() => copyToClipboard(apiKey.key_id)}
                           >
                             <Copy className="h-3 w-3" />
                           </Button>
@@ -233,21 +237,21 @@ export function ApiKeysPage() {
                       </TableCell>
                       <TableCell>
                         <Badge variant="secondary">
-                          {apiKey.usageCount.toLocaleString()} calls
+                          {apiKey.scopes.join(', ')}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-sm text-gray-600">
-                        {apiKey.lastUsed ? new Date(apiKey.lastUsed).toLocaleDateString() : 'Never'}
+                      <TableCell className="text-sm text-muted-foreground">
+                        {apiKey.is_expired ? 'Expired' : 'Active'}
                       </TableCell>
-                      <TableCell className="text-sm text-gray-600">
-                        {new Date(apiKey.createdAt).toLocaleDateString()}
+                      <TableCell className="text-sm text-muted-foreground">
+                        {new Date(apiKey.created_at * 1000).toLocaleDateString()}
                       </TableCell>
                       <TableCell>
                         <Button
                           size="sm"
                           variant="ghost"
-                          onClick={() => deleteApiKey(apiKey.id)}
-                          className="text-red-600 hover:text-red-800 hover:bg-red-50"
+                          onClick={() => deleteApiKey(apiKey.key_id)}
+                          className="text-destructive hover:text-destructive/80 hover:bg-destructive/10"
                         >
                           <Trash2 className="h-3 w-3" />
                         </Button>
@@ -263,31 +267,49 @@ export function ApiKeysPage() {
 
       {/* Usage Examples */}
       {apiKeys.length > 0 && (
-        <Card className="border border-gray-200">
+        <Card className="border">
           <CardHeader>
             <CardTitle>Usage Examples</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <h4 className="font-medium text-black mb-2">Authentication Header</h4>
-              <div className="bg-black text-green-400 p-4 rounded-lg font-mono text-sm">
+              <h4 className="font-medium text-foreground mb-2">Authentication Header</h4>
+              <div className={`
+                p-4 rounded-lg font-mono text-sm overflow-x-auto
+                ${theme === 'dark' 
+                  ? 'bg-gray-800 text-green-400 border border-gray-600' 
+                  : 'bg-black text-green-400'
+                }
+              `}>
                 <pre>Authorization: Bearer YOUR_API_KEY</pre>
               </div>
             </div>
 
             <div>
-              <h4 className="font-medium text-black mb-2">cURL Example</h4>
-              <div className="bg-black text-green-400 p-4 rounded-lg font-mono text-sm overflow-x-auto">
-                <pre>{`curl -X POST "https://api.valthera.com/v1/classify/YOUR_ENDPOINT" \\
-  -H "Authorization: Bearer YOUR_API_KEY" \\
-  -H "Content-Type: multipart/form-data" \\
+              <h4 className="font-medium text-foreground mb-2">cURL Example</h4>
+              <div className={`
+                p-4 rounded-lg font-mono text-sm overflow-x-auto
+                ${theme === 'dark' 
+                  ? 'bg-gray-800 text-green-400 border border-gray-600' 
+                  : 'bg-black text-green-400'
+                }
+              `}>
+                <pre>{`curl -X POST "https://api.valthera.com/v1/classify/YOUR_ENDPOINT" \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: multipart/form-data" \
   -F "video=@path/to/video.mp4"`}</pre>
               </div>
             </div>
 
             <div>
-              <h4 className="font-medium text-black mb-2">Python Example</h4>
-              <div className="bg-black text-green-400 p-4 rounded-lg font-mono text-sm overflow-x-auto">
+              <h4 className="font-medium text-foreground mb-2">Python Example</h4>
+              <div className={`
+                p-4 rounded-lg font-mono text-sm overflow-x-auto
+                ${theme === 'dark' 
+                  ? 'bg-gray-800 text-green-400 border border-gray-600' 
+                  : 'bg-black text-green-400'
+                }
+              `}>
                 <pre>{`import requests
 
 headers = {
@@ -304,16 +326,6 @@ with open("video.mp4", "rb") as video_file:
     result = response.json()
     print(result)`}</pre>
               </div>
-            </div>
-
-            <div className="bg-blue-50 p-4 rounded-lg">
-              <h4 className="font-medium text-blue-800 mb-2">Rate Limits & Billing</h4>
-              <ul className="text-sm text-blue-700 space-y-1">
-                <li>• Each API call costs $0.0001</li>
-                <li>• No rate limits currently enforced</li>
-                <li>• Usage is tracked and billed monthly</li>
-                <li>• Monitor your usage on the Billing page</li>
-              </ul>
             </div>
           </CardContent>
         </Card>

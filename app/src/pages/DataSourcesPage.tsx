@@ -13,6 +13,7 @@ import {
   Eye
 } from 'lucide-react';
 import { api, type DataSource } from '../lib/api';
+import { useTheme } from '../contexts/ThemeContext';
 
 interface DataFolder {
   id: string;
@@ -32,6 +33,7 @@ export function DataSourcesPage() {
   const [error, setError] = useState<string | null>(null);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
+  const { theme } = useTheme();
 
   useEffect(() => {
     loadDataSources();
@@ -153,18 +155,32 @@ export function DataSourcesPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header with Create Button */}
-      <div className="flex items-center justify-between">
+      {/* Header */}
+      <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-black">Data Sources</h1>
-          <p className="text-gray-600 mt-1">Manage your video data sources and folders</p>
+          <h1 className={`
+            text-2xl font-bold
+            ${theme === 'dark' ? 'text-white' : 'text-black'}
+          `}>
+            Data Sources
+          </h1>
+          <p className={`
+            mt-1 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}
+          `}>
+            Manage your video data sources and folders
+          </p>
         </div>
-        <Button
+        <Button 
           onClick={handleCreateFolderClick}
-          className="bg-black hover:bg-gray-800"
+          className={`
+            ${theme === 'dark' 
+              ? 'bg-white text-black hover:bg-gray-200' 
+              : 'bg-black hover:bg-gray-800'
+            }
+          `}
         >
-          <Plus className="h-4 w-4 mr-2" />
-          Create Data Source
+          <Plus className="mr-2 h-4 w-4" />
+          New Data Source
         </Button>
       </div>
 
@@ -192,7 +208,12 @@ export function DataSourcesPage() {
               <div className="flex items-center space-x-3">
                 <FolderOpen className="h-8 w-8 text-blue-600" />
                 <div>
-                  <h3 className="font-medium text-black">{folder.name}</h3>
+                  <h3 className={`
+                    font-medium
+                    ${theme === 'dark' ? 'text-white' : 'text-black'}
+                  `}>
+                    {folder.name}
+                  </h3>
                   <p className="text-sm text-gray-500">
                     Modified {formatDate(folder.lastModified)}
                   </p>
@@ -252,9 +273,23 @@ export function DataSourcesPage() {
 
       {/* Create Folder Dialog */}
       {showCreateDialog && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-96">
-            <h3 className="text-lg font-medium text-black mb-4">Create New Data Source</h3>
+        <div className={`
+          fixed inset-0 flex items-center justify-center z-50
+          ${theme === 'dark' ? 'bg-black bg-opacity-70' : 'bg-black bg-opacity-50'}
+        `}>
+          <div className={`
+            rounded-lg p-6 w-96 transition-colors duration-200
+            ${theme === 'dark' 
+              ? 'bg-gray-800 border border-gray-600' 
+              : 'bg-white'
+            }
+          `}>
+            <h3 className={`
+              text-lg font-medium mb-4
+              ${theme === 'dark' ? 'text-white' : 'text-black'}
+            `}>
+              Create New Data Source
+            </h3>
             <form onSubmit={handleCreateFolderSubmit}>
               <div className="mb-4">
                 <label htmlFor="folderName" className="block text-sm font-medium text-gray-700 mb-2">
@@ -281,12 +316,17 @@ export function DataSourcesPage() {
                 >
                   Cancel
                 </Button>
-                <Button
-                  type="submit"
-                  className="bg-black hover:bg-gray-800"
+                <Button 
+                  onClick={handleCreateFolderSubmit}
                   disabled={!newFolderName.trim()}
+                  className={`
+                    ${theme === 'dark' 
+                      ? 'bg-white text-black hover:bg-gray-200' 
+                      : 'bg-black hover:bg-gray-800'
+                    }
+                  `}
                 >
-                  Create Data Source
+                  Create
                 </Button>
               </div>
             </form>
@@ -296,20 +336,43 @@ export function DataSourcesPage() {
 
       {/* Empty State */}
       {folders.length === 0 && (
-        <div className="text-center py-12">
-          <FolderOpen className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-black mb-2">No data sources yet</h3>
-          <p className="text-gray-600 mb-4">
-            Create your first data source to start uploading video data
-          </p>
-          <Button
-            onClick={handleCreateFolderClick}
-            className="bg-black hover:bg-gray-800"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Create First Data Source
-          </Button>
-        </div>
+        <Card className={`
+          border transition-colors duration-200
+          ${theme === 'dark' 
+            ? 'border-gray-600 bg-gray-800' 
+            : 'border-gray-200 bg-white'
+          }
+        `}>
+          <div className="text-center py-12">
+            <FolderOpen className={`
+              mx-auto h-16 w-16 mb-4
+              ${theme === 'dark' ? 'text-gray-400' : 'text-gray-300'}
+            `} />
+            <h3 className={`
+              text-lg font-medium mb-2
+              ${theme === 'dark' ? 'text-white' : 'text-black'}
+            `}>
+              No data sources yet
+            </h3>
+            <p className={`
+              mb-6 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}
+            `}>
+              Create your first data source to start organizing your video data
+            </p>
+            <Button 
+              onClick={handleCreateFolderClick}
+              className={`
+                ${theme === 'dark' 
+                  ? 'bg-white text-black hover:bg-gray-200' 
+                  : 'bg-black hover:bg-gray-800'
+                }
+              `}
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Create Data Source
+            </Button>
+          </div>
+        </Card>
       )}
     </div>
   );

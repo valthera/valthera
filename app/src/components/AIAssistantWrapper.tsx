@@ -22,7 +22,7 @@ export function AIAssistantWrapper({ isOpen, onClose, width, isMobile, onResize 
 
   return (
     <div
-      className={`fixed top-0 right-0 h-full bg-white border-l border-gray-200 z-40 transition-all duration-300 ${
+      className={`fixed top-0 right-0 h-full bg-background border-l border-border z-40 transition-all duration-300 ${
         isMobile ? 'w-full' : ''
       }`}
       style={{
@@ -33,7 +33,7 @@ export function AIAssistantWrapper({ isOpen, onClose, width, isMobile, onResize 
       {/* Resize handle for desktop */}
       {!isMobile && (
         <div
-          className="absolute left-0 top-0 w-1 h-full cursor-col-resize hover:bg-gray-300 transition-colors"
+          className="absolute left-0 top-0 w-1 h-full cursor-col-resize hover:bg-border transition-colors"
           onMouseDown={onResize}
         />
       )}
@@ -41,7 +41,7 @@ export function AIAssistantWrapper({ isOpen, onClose, width, isMobile, onResize 
       {/* Close button */}
       <button
         onClick={onClose}
-        className="absolute top-4 right-4 p-2 text-gray-500 hover:text-gray-700 transition-colors"
+        className="absolute top-4 right-4 p-2 text-muted-foreground hover:text-foreground transition-colors"
       >
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

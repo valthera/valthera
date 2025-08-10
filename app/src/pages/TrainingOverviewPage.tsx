@@ -90,13 +90,13 @@ export function TrainingOverviewPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-black">Training</h1>
-          <p className="text-gray-600 mt-1">
+          <h1 className="text-3xl font-bold text-foreground">Training</h1>
+          <p className="text-muted-foreground mt-1">
             Monitor all training jobs across your projects
           </p>
         </div>
         
-        <Button asChild className="bg-black text-white hover:bg-gray-800">
+        <Button asChild className="bg-primary text-primary-foreground hover:bg-primary/90">
           <Link to="/dashboard">
             <Plus className="mr-2 h-4 w-4" />
             New Project
@@ -106,33 +106,33 @@ export function TrainingOverviewPage() {
 
       {/* Training Overview */}
       {trainingJobs.length === 0 ? (
-        <Card className="border border-gray-200">
+        <Card className="border">
           <CardContent className="text-center py-12">
-            <Zap className="mx-auto h-16 w-16 text-gray-400 mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No training jobs yet</h3>
-            <p className="text-gray-600 mb-6">
+            <Zap className="mx-auto h-16 w-16 text-muted-foreground mb-4" />
+            <h3 className="text-lg font-medium text-foreground mb-2">No training jobs yet</h3>
+            <p className="text-muted-foreground mb-6">
               Create a project, define behaviors, and start training to see jobs here
             </p>
             
             <div className="space-y-4">
-              <div className="flex items-center justify-center space-x-2 text-sm text-gray-500">
+              <div className="flex items-center justify-center space-x-2 text-sm text-muted-foreground">
                 <span className="flex items-center">
-                  <span className="w-6 h-6 rounded-full bg-gray-200 text-xs flex items-center justify-center mr-2">1</span>
+                  <span className="w-6 h-6 rounded-full bg-muted text-xs flex items-center justify-center mr-2">1</span>
                   Create Project
                 </span>
                 <ArrowRight className="h-4 w-4" />
                 <span className="flex items-center">
-                  <span className="w-6 h-6 rounded-full bg-gray-200 text-xs flex items-center justify-center mr-2">2</span>
+                  <span className="w-6 h-6 rounded-full bg-muted text-xs flex items-center justify-center mr-2">2</span>
                   Define Behaviors
                 </span>
                 <ArrowRight className="h-4 w-4" />
                 <span className="flex items-center">
-                  <span className="w-6 h-6 rounded-full bg-gray-200 text-xs flex items-center justify-center mr-2">3</span>
+                  <span className="w-6 h-6 rounded-full bg-muted text-xs flex items-center justify-center mr-2">3</span>
                   Start Training
                 </span>
               </div>
               
-              <Button asChild className="bg-black text-white hover:bg-gray-800">
+              <Button asChild className="bg-primary text-primary-foreground hover:bg-primary/90">
                 <Link to="/dashboard">
                   <Plus className="mr-2 h-4 w-4" />
                   Create Your First Project
@@ -145,40 +145,40 @@ export function TrainingOverviewPage() {
         <div className="space-y-6">
           {/* Summary Stats */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <Card className="border border-gray-200">
+            <Card className="border">
               <CardContent className="p-4">
-                <div className="text-2xl font-bold text-black">{trainingJobs.length}</div>
-                <div className="text-sm text-gray-600">Total Jobs</div>
+                <div className="text-2xl font-bold text-foreground">{trainingJobs.length}</div>
+                <div className="text-sm text-muted-foreground">Total Jobs</div>
               </CardContent>
             </Card>
-            <Card className="border border-gray-200">
+            <Card className="border">
               <CardContent className="p-4">
-                <div className="text-2xl font-bold text-black">
+                <div className="text-2xl font-bold text-foreground">
                   {trainingJobs.filter(j => ['preprocessing', 'training', 'validating'].includes(j.status)).length}
                 </div>
-                <div className="text-sm text-gray-600">In Progress</div>
+                <div className="text-sm text-muted-foreground">In Progress</div>
               </CardContent>
             </Card>
-            <Card className="border border-gray-200">
+            <Card className="border">
               <CardContent className="p-4">
-                <div className="text-2xl font-bold text-black">
+                <div className="text-2xl font-bold text-foreground">
                   {trainingJobs.filter(j => j.status === 'completed').length}
                 </div>
-                <div className="text-sm text-gray-600">Completed</div>
+                <div className="text-sm text-muted-foreground">Completed</div>
               </CardContent>
             </Card>
-            <Card className="border border-gray-200">
+            <Card className="border">
               <CardContent className="p-4">
-                <div className="text-2xl font-bold text-black">
+                <div className="text-2xl font-bold text-foreground">
                   {trainingJobs.filter(j => j.status === 'failed').length}
                 </div>
-                <div className="text-sm text-gray-600">Failed</div>
+                <div className="text-sm text-muted-foreground">Failed</div>
               </CardContent>
             </Card>
           </div>
 
           {/* Training Jobs List */}
-          <Card className="border border-gray-200">
+          <Card className="border">
             <CardHeader>
               <CardTitle>Recent Training Jobs</CardTitle>
             </CardHeader>
@@ -191,12 +191,12 @@ export function TrainingOverviewPage() {
                     const StatusIcon = statusInfo.icon;
                     
                     return (
-                      <div key={job.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+                      <div key={job.id} className="flex items-center justify-between p-4 border rounded-lg">
                         <div className="flex items-center space-x-4">
-                          <StatusIcon className="h-5 w-5 text-gray-600" />
+                          <StatusIcon className="h-5 w-5 text-muted-foreground" />
                           <div>
-                            <div className="font-medium text-black">{job.projectName}</div>
-                            <div className="text-sm text-gray-600">
+                            <div className="font-medium text-foreground">{job.projectName}</div>
+                            <div className="text-sm text-muted-foreground">
                               {job.behaviorCount} behaviors • Started {new Date(job.startedAt).toLocaleDateString()}
                             </div>
                           </div>
@@ -206,7 +206,7 @@ export function TrainingOverviewPage() {
                           {job.status !== 'completed' && job.status !== 'failed' && (
                             <div className="w-32">
                               <Progress value={job.progress} className="h-2" />
-                              <div className="text-xs text-gray-500 mt-1">{job.progress}%</div>
+                              <div className="text-xs text-muted-foreground mt-1">{job.progress}%</div>
                             </div>
                           )}
                           

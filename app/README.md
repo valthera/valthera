@@ -1,11 +1,10 @@
 # Blink - AWS Cognito Authentication App
 
-A modern authentication system built with React, TypeScript, and AWS Cognito. Features secure user authentication with email verification, password reset, and protected routes. Now includes Stripe billing integration for payment method management.
+A modern authentication system built with React, TypeScript, and AWS Cognito. Features secure user authentication with email verification, password reset, and protected routes.
 
 ## Features
 
 - 🔐 **Secure Authentication** - Built on AWS Cognito's secure authentication system
-- 💳 **Stripe Billing** - Complete payment method management with Stripe integration
 - 🛡️ **Protected Routes** - Automatic route protection with redirects
 - 📧 **Password Reset** - Secure password reset functionality with email verification
 - ⚡ **Modern UI** - Beautiful, responsive design built with Tailwind CSS
@@ -17,7 +16,6 @@ A modern authentication system built with React, TypeScript, and AWS Cognito. Fe
 - **Frontend**: React 19, TypeScript, Vite
 - **Styling**: Tailwind CSS, Mantine UI
 - **Authentication**: AWS Cognito (via Amplify)
-- **Billing**: Stripe
 - **Routing**: React Router DOM
 - **State Management**: React Context API
 
@@ -123,18 +121,7 @@ The CDK stack automatically configures:
 3. Go to Messaging > Email configuration
 4. Configure your email provider (SES recommended)
 
-## Billing Features
 
-### Payment Method Management
-- **Add Payment Methods** - Securely add credit/debit cards using Stripe Elements
-- **Update Payment Methods** - Edit cardholder names and billing details
-- **Remove Payment Methods** - Safely remove payment methods
-- **Default Payment Method** - Set and manage default payment methods
-
-### Subscription Management
-- **View Current Plan** - See your current subscription status
-- **Upgrade/Downgrade** - Change your subscription plan
-- **Billing History** - View past invoices and payments
 
 ## API Key Management
 
@@ -181,7 +168,6 @@ pnpm dev
 - ✅ Password reset with code verification
 - ✅ API key generation and management
 - ✅ User profile management
-- ✅ Subscription management with Stripe
 - ✅ Modern UI with Mantine and Tailwind CSS
 - ✅ Responsive design
 

@@ -6,7 +6,8 @@ import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
 import { Alert, AlertDescription } from '../components/ui/alert'
-import { Eye, EyeOff, AlertCircle, CheckCircle2, Mail, Key } from 'lucide-react'
+import { Eye, EyeOff, AlertCircle, CheckCircle2, Mail, Key, X } from 'lucide-react'
+import { useTheme } from '../contexts/ThemeContext'
 
 export function ForgotPassword() {
   const [email, setEmail] = useState('')
@@ -19,7 +20,9 @@ export function ForgotPassword() {
   const [message, setMessage] = useState('')
   const [loading, setLoading] = useState(false)
   const [showResetForm, setShowResetForm] = useState(false)
+  const [resetSent, setResetSent] = useState(false)
   const { resetPassword, confirmResetPassword } = useAuth()
+  const { theme } = useTheme()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -34,6 +37,7 @@ export function ForgotPassword() {
     } else {
       setMessage('Check your email for a password reset code!')
       setShowResetForm(true)
+      setResetSent(true)
     }
     
     setLoading(false)
@@ -76,15 +80,32 @@ export function ForgotPassword() {
   if (showResetForm) {
     return (
       <AuthShell>
-        <div className="bg-white rounded-lg border border-gray-200 p-8 shadow-sm">
+        <div className={`
+          rounded-lg border p-8 shadow-sm transition-colors duration-200
+          ${theme === 'dark' 
+            ? 'bg-gray-800 border-gray-600' 
+            : 'bg-white border-gray-200'
+          }
+        `}>
           <div className="text-center mb-8">
-            <div className="mx-auto w-12 h-12 bg-black rounded-full flex items-center justify-center mb-4">
-              <Key className="h-6 w-6 text-white" />
+            <div className={`
+              mx-auto w-12 h-12 rounded-full flex items-center justify-center mb-4
+              ${theme === 'dark' 
+                ? 'bg-white text-black' 
+                : 'bg-black text-white'
+              }
+            `}>
+              <Key className="h-6 w-6" />
             </div>
-            <h1 className="text-2xl font-bold text-black mb-2">
+            <h1 className={`
+              text-2xl font-bold mb-2
+              ${theme === 'dark' ? 'text-white' : 'text-black'}
+            `}>
               Create new password
             </h1>
-            <p className="text-gray-600">
+            <p className={`
+              ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}
+            `}>
               Enter the code from your email and create a new password
             </p>
           </div>
@@ -199,16 +220,33 @@ export function ForgotPassword() {
 
   return (
     <AuthShell>
-      <div className="bg-white rounded-lg border border-gray-200 p-8 shadow-sm">
+      <div className={`
+        rounded-lg border p-8 shadow-sm transition-colors duration-200
+        ${theme === 'dark' 
+          ? 'bg-gray-800 border-gray-600' 
+          : 'bg-white border-gray-200'
+        }
+      `}>
         <div className="text-center mb-8">
-          <div className="mx-auto w-12 h-12 bg-black rounded-full flex items-center justify-center mb-4">
-            <Mail className="h-6 w-6 text-white" />
+          <div className={`
+            mx-auto w-12 h-12 rounded-full flex items-center justify-center mb-4
+            ${theme === 'dark' 
+              ? 'bg-white text-black' 
+              : 'bg-black text-white'
+            }
+          `}>
+            <Mail className="h-6 w-6" />
           </div>
-          <h1 className="text-2xl font-bold text-black mb-2">
-            Forgot your password?
+          <h1 className={`
+            text-2xl font-bold mb-2
+            ${theme === 'dark' ? 'text-white' : 'text-black'}
+          `}>
+            Reset your password
           </h1>
-          <p className="text-gray-600">
-            No worries! Enter your email and we'll send you a reset code
+          <p className={`
+            ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}
+          `}>
+            Enter your email address and we'll send you a code to reset your password
           </p>
         </div>
 
@@ -220,46 +258,79 @@ export function ForgotPassword() {
         )}
 
         {message && (
-          <Alert className="mb-6">
-            <CheckCircle2 className="h-4 w-4" />
-            <AlertDescription>{message}</AlertDescription>
+          <Alert className={`
+            mb-6 ${theme === 'dark' ? 'bg-green-900/20 border-green-800' : 'bg-green-50 border-green-200'}
+          `}>
+            <CheckCircle2 className={`
+              h-4 w-4 ${theme === 'dark' ? 'text-green-400' : 'text-green-600'}
+            `} />
+            <AlertDescription className={`
+              ${theme === 'dark' ? 'text-green-300' : 'text-green-700'}
+            `}>
+              {message}
+            </AlertDescription>
           </Alert>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-2">
-            <Label htmlFor="email">Email address</Label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="your@email.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              autoComplete="email"
-              className="w-full"
-            />
+            <Label htmlFor="email" className={`
+              ${theme === 'dark' ? 'text-white' : 'text-black'}
+            `}>
+              Email address
+            </Label>
+            <div className="mt-1 relative">
+              <input
+                id="email"
+                name="email"
+                type="email"
+                autoComplete="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="appearance-none relative block w-full px-3 py-2 border border-input bg-background text-foreground placeholder-muted-foreground rounded-md focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
+                placeholder="Enter your email"
+              />
+              {email && (
+                <button
+                  type="button"
+                  onClick={() => setEmail('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground">Must be at least 8 characters long</p>
           </div>
 
-          <Button
-            type="submit"
-            disabled={loading}
-            className="w-full"
-            size="lg"
-          >
-            {loading ? 'Sending Code...' : 'Send Reset Code'}
-          </Button>
-        </form>
+          <div>
+            <button
+              type="submit"
+              disabled={loading}
+              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-primary-foreground bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? (
+                <div className="flex items-center">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-foreground mr-2"></div>
+                  Sending...
+                </div>
+              ) : (
+                'Send reset link'
+              )}
+            </button>
+          </div>
 
-        <div className="mt-8 text-center">
-          <p className="text-gray-600">
-            Remember your password?{' '}
-            <Link to="/signin" className="text-black font-medium hover:underline">
-              Sign in
-            </Link>
-          </p>
-        </div>
+          <div className="text-center">
+            <p className="text-muted-foreground">
+              Remember your password?{' '}
+              <Link to="/signin" className="text-foreground font-medium hover:underline">
+                Sign in
+              </Link>
+            </p>
+          </div>
+        </form>
       </div>
     </AuthShell>
-  )
+  );
 } 

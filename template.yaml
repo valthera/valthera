@@ -95,6 +95,29 @@ Resources:
       PointInTimeRecoverySpecification:
         PointInTimeRecoveryEnabled: true
 
+  ApiKeysTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "${TablePrefix}-api-keys"
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: key_id
+          AttributeType: S
+        - AttributeName: user_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: key_id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: UserIdIndex
+          KeySchema:
+            - AttributeName: user_id
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+
   # S3 Buckets
   VideoBucket:
     Type: AWS::S3::Bucket
@@ -1079,6 +1102,85 @@ Resources:
           Properties:
             Path: /api/concepts/videos/{proxy+}
             Method: GET
+            Auth:
+              Authorizer: NONE
+            RestApiId: !Ref ValtheraAPI
+
+  # API Key Management Functions
+  CreateApiKeyFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "${ResourcePrefix}-create-api-key"
+      CodeUri: lambdas/functions/api-keys/create/
+      Handler: app.lambda_handler
+      Runtime: python3.9
+      Timeout: 30
+      MemorySize: 512
+      Layers:
+        - !Ref ValtheraCoreLayer
+      Environment:
+        Variables:
+          ENVIRONMENT: !Ref Environment
+          API_KEYS_TABLE: !Ref ApiKeysTable
+          AWS_ENDPOINT_URL: !If [IsLocal, "http://host.docker.internal:8000", !Ref "AWS::NoValue"]
+      Events:
+        CreateApiKey:
+          Type: Api
+          Properties:
+            Path: /api/keys
+            Method: POST
+            Auth:
+              Authorizer: NONE
+            RestApiId: !Ref ValtheraAPI
+
+  ListApiKeysFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "${ResourcePrefix}-list-api-keys"
+      CodeUri: lambdas/functions/api-keys/list/
+      Handler: app.lambda_handler
+      Runtime: python3.9
+      Timeout: 30
+      MemorySize: 512
+      Layers:
+        - !Ref ValtheraCoreLayer
+      Environment:
+        Variables:
+          ENVIRONMENT: !Ref Environment
+          API_KEYS_TABLE: !Ref ApiKeysTable
+          AWS_ENDPOINT_URL: !If [IsLocal, "http://host.docker.internal:8000", !Ref "AWS::NoValue"]
+      Events:
+        ListApiKeys:
+          Type: Api
+          Properties:
+            Path: /api/keys
+            Method: GET
+            Auth:
+              Authorizer: NONE
+            RestApiId: !Ref ValtheraAPI
+
+  RevokeApiKeyFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "${ResourcePrefix}-revoke-api-key"
+      CodeUri: lambdas/functions/api-keys/revoke/
+      Handler: app.lambda_handler
+      Runtime: python3.9
+      Timeout: 30
+      MemorySize: 512
+      Layers:
+        - !Ref ValtheraCoreLayer
+      Environment:
+        Variables:
+          ENVIRONMENT: !Ref Environment
+          API_KEYS_TABLE: !Ref ApiKeysTable
+          AWS_ENDPOINT_URL: !If [IsLocal, "http://host.docker.internal:8000", !Ref "AWS::NoValue"]
+      Events:
+        RevokeApiKey:
+          Type: Api
+          Properties:
+            Path: /api/keys/revoke
+            Method: POST
             Auth:
               Authorizer: NONE
             RestApiId: !Ref ValtheraAPI

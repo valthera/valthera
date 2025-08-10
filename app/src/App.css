@@ -47,8 +47,8 @@
 /* Custom styles for the app */
 .App {
   min-height: 100vh;
-  background-color: white;
-  color: black;
+  background-color: var(--background);
+  color: var(--foreground);
 }
 
 /* Loading spinner styles */
@@ -109,10 +109,10 @@
 }
 
 @theme inline {
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --radius-lg: 6px;
+  --radius-xl: 8px;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -147,7 +147,7 @@
 }
 
 :root {
-  --radius: 0.625rem;
+  --radius: 4px;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
@@ -221,5 +221,146 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+  
+  /* Dark mode text color overrides */
+  .dark h1, .dark h2, .dark h3, .dark h4, .dark h5, .dark h6 {
+    color: var(--foreground);
+  }
+  
+  .dark p, .dark span, .dark div {
+    color: var(--foreground);
+  }
+  
+  .dark .text-black {
+    color: var(--foreground);
+  }
+  
+  .dark .text-gray-600 {
+    color: var(--muted-foreground);
+  }
+  
+  .dark .text-gray-500 {
+    color: var(--muted-foreground);
+  }
+  
+  .dark .text-gray-900 {
+    color: var(--foreground);
+  }
+  
+  .dark .text-gray-800 {
+    color: var(--foreground);
+  }
+  
+  .dark .text-gray-700 {
+    color: var(--muted-foreground);
+  }
+  
+  .dark .bg-gray-100 {
+    background-color: var(--muted);
+  }
+  
+  .dark .bg-gray-50 {
+    background-color: var(--muted);
+  }
+  
+  .dark .bg-white {
+    background-color: var(--card);
+  }
+  
+  .dark .border-gray-200 {
+    border-color: var(--border);
+  }
+  
+  .dark .border-gray-100 {
+    border-color: var(--border);
+  }
+  
+  .dark .border-gray-300 {
+    border-color: var(--border);
+  }
+  
+  .dark .hover\:border-gray-300:hover {
+    border-color: var(--border);
+  }
+  
+  .dark .hover\:bg-gray-50:hover {
+    background-color: var(--accent);
+  }
+  
+  .dark .hover\:bg-gray-100:hover {
+    background-color: var(--accent);
+  }
+  
+  .dark .hover\:bg-gray-200:hover {
+    background-color: var(--accent);
+  }
+  
+  .dark .bg-red-100 {
+    background-color: oklch(0.2 0.1 27.325 / 0.2);
+  }
+  
+  .dark .bg-yellow-100 {
+    background-color: oklch(0.2 0.1 70.08 / 0.2);
+  }
+  
+  .dark .bg-green-100 {
+    background-color: oklch(0.2 0.1 162.48 / 0.2);
+  }
+  
+  .dark .bg-blue-50 {
+    background-color: oklch(0.2 0.1 227.392 / 0.2);
+  }
+  
+  .dark .text-red-600 {
+    color: oklch(0.704 0.191 22.216);
+  }
+  
+  .dark .text-yellow-600 {
+    color: oklch(0.769 0.188 70.08);
+  }
+  
+  .dark .text-green-600 {
+    color: oklch(0.696 0.17 162.48);
+  }
+  
+  .dark .text-green-700 {
+    color: oklch(0.696 0.17 162.48);
+  }
+  
+  .dark .text-green-800 {
+    color: oklch(0.696 0.17 162.48);
+  }
+  
+  .dark .text-orange-700 {
+    color: oklch(0.769 0.188 70.08);
+  }
+  
+  .dark .text-orange-800 {
+    color: oklch(0.769 0.188 70.08);
+  }
+  
+  .dark .border-green-200 {
+    border-color: oklch(0.696 0.17 162.48 / 0.3);
+  }
+  
+  .dark .border-orange-200 {
+    border-color: oklch(0.769 0.188 70.08 / 0.3);
+  }
+  
+  .dark .border-green-800 {
+    border-color: oklch(0.696 0.17 162.48 / 0.3);
+  }
+  
+  .dark .border-orange-800 {
+    border-color: oklch(0.769 0.188 70.08 / 0.3);
+  }
+  
+  .dark .hover\:text-gray-700:hover {
+    color: var(--muted-foreground);
+  }
+  
+  .dark .hover\:text-black:hover {
+    color: var(--foreground);
   }
 }

@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from './ui/button';
@@ -25,6 +25,8 @@ import { useProjects } from '../contexts/ProjectsContext';
 import { AIAssistantWrapper } from './AIAssistantWrapper';
 import { FeatureFlagToggle } from './FeatureFlagToggle';
 import { useFeatureFlag } from '../contexts/FeatureFlagsContext';
+import { useTheme } from '../contexts/ThemeContext';
+import { ThemeToggle } from './ThemeToggle';
 
 interface AppShellProps {
   children: ReactNode;
@@ -33,9 +35,11 @@ interface AppShellProps {
 export function AppShell({ children }: AppShellProps) {
   const { user, signOut } = useAuth();
   const { projects, loading } = useProjects();
+  const { theme } = useTheme();
   const location = useLocation();
   const [projectsExpanded, setProjectsExpanded] = useState(false);
   const isAIAssistantEnabled = useFeatureFlag('aiResearchAssistant');
+  const prevAIAssistantEnabledRef = useRef(isAIAssistantEnabled);
   
 
   
@@ -79,6 +83,15 @@ export function AppShell({ children }: AppShellProps) {
       setChatOpen(isAIAssistantEnabled && (savedChat !== null ? JSON.parse(savedChat) : true));
       setChatWidth(savedChatWidth !== null ? JSON.parse(savedChatWidth) : 320);
     }
+  }, [isMobile, isAIAssistantEnabled]);
+
+  // When the feature flag is toggled ON (e.g., via URL), auto-open the panel
+  useEffect(() => {
+    const wasEnabled = prevAIAssistantEnabledRef.current;
+    if (!isMobile && isAIAssistantEnabled && !wasEnabled) {
+      setChatOpen(true);
+    }
+    prevAIAssistantEnabledRef.current = isAIAssistantEnabled;
   }, [isMobile, isAIAssistantEnabled]);
 
   // Persist state to localStorage
@@ -162,7 +175,10 @@ export function AppShell({ children }: AppShellProps) {
   const headerRight = (chatOpen && !isMobile && isAIAssistantEnabled) ? `${chatWidth}px` : '0px';
 
   return (
-    <div className="min-h-screen bg-white relative">
+    <div className={cn(
+      "min-h-screen relative transition-colors duration-200",
+      theme === 'dark' ? 'bg-gray-900' : 'bg-white'
+    )}>
       {/* Mobile Overlay */}
       {isMobile && (sidebarOpen || (chatOpen && isAIAssistantEnabled)) && (
         <div 
@@ -177,18 +193,27 @@ export function AppShell({ children }: AppShellProps) {
       {/* Sidebar */}
       <div 
         className={cn(
-          "fixed inset-y-0 left-0 bg-white border-r border-gray-200 transition-transform duration-300 z-50",
+          "fixed inset-y-0 left-0 transition-transform duration-300 z-50 border-r",
           isMobile ? "w-full md:w-64" : "w-64",
-          sidebarOpen ? "translate-x-0" : "-translate-x-full"
+          sidebarOpen ? "translate-x-0" : "-translate-x-full",
+          theme === 'dark' 
+            ? 'bg-gray-800 border-gray-700' 
+            : 'bg-white border-gray-200'
         )}
       >
         <div className="flex flex-col h-full">
           {/* Logo */}
-          <div className="px-6 h-16 border-b border-gray-200">
+          <div className={cn(
+            "px-6 h-16 border-b",
+            theme === 'dark' ? 'border-gray-700' : 'border-gray-200'
+          )}>
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
-                <img src="/logo.svg" alt="Valthera" className="h-14 w-14" />
-                <span className="text-xl font-semibold text-black">Valthera</span>
+                <img src="/logo.svg" alt="Valthera" className="h-14 w-14 logo-invert" />
+                <span className={cn(
+                  "text-xl font-semibold",
+                  theme === 'dark' ? 'text-white' : 'text-black'
+                )}>Valthera</span>
               </div>
               {isMobile && (
                 <Button
@@ -211,11 +236,16 @@ export function AppShell({ children }: AppShellProps) {
                 <button
                   onClick={() => setProjectsExpanded(!projectsExpanded)}
                   className={cn(
-                    'flex items-center w-full px-3 py-2 rounded-md text-sm font-medium transition-colors',
+                    'flex items-center w-full px-3 py-2 text-sm font-medium transition-colors',
                     (isActive('/dashboard') || location.pathname.startsWith('/projects/'))
-                      ? 'bg-black text-white'
-                      : 'text-gray-700 hover:bg-gray-100'
+                      ? theme === 'dark' 
+                        ? 'bg-gray-700 text-white' 
+                        : 'bg-black text-white'
+                      : theme === 'dark'
+                        ? 'text-gray-300 hover:bg-gray-700'
+                        : 'text-gray-700 hover:bg-gray-100'
                   )}
+                  style={{ borderRadius: '4px' }}
                 >
                   <FolderOpen className="mr-3 h-4 w-4" />
                   Projects
@@ -232,11 +262,16 @@ export function AppShell({ children }: AppShellProps) {
                     <Link
                       to="/dashboard"
                       className={cn(
-                        'flex items-center px-3 py-2 rounded-md text-sm transition-colors',
+                        'flex items-center px-3 py-2 text-sm transition-colors',
                         location.pathname === '/dashboard'
-                          ? 'bg-gray-100 text-black font-medium'
-                          : 'text-gray-600 hover:bg-gray-50'
+                          ? theme === 'dark'
+                            ? 'bg-gray-700 text-white font-medium'
+                            : 'bg-gray-100 text-black font-medium'
+                          : theme === 'dark'
+                            ? 'text-gray-400 hover:bg-gray-700'
+                            : 'text-gray-600 hover:bg-gray-50'
                       )}
+                      style={{ borderRadius: '4px' }}
                     >
                       <Plus className="mr-2 h-3 w-3" />
                       All Projects
@@ -248,11 +283,16 @@ export function AppShell({ children }: AppShellProps) {
                           key={project.id}
                           to={`/projects/${project.id}/concepts`}
                           className={cn(
-                            'flex items-center px-3 py-2 rounded-md text-sm transition-colors',
+                            'flex items-center px-3 py-2 text-sm transition-colors',
                             isProjectActive(project.id)
-                              ? 'bg-gray-100 text-black font-medium'
-                              : 'text-gray-600 hover:bg-gray-50'
+                              ? theme === 'dark'
+                                ? 'bg-gray-700 text-white font-medium'
+                                : 'bg-gray-100 text-black font-medium'
+                              : theme === 'dark'
+                                ? 'text-gray-400 hover:bg-gray-700'
+                                : 'text-gray-600 hover:bg-gray-50'
                           )}
+                          style={{ borderRadius: '4px' }}
                         >
                           <FileText className="mr-2 h-3 w-3" />
                           {project.name}
@@ -270,11 +310,16 @@ export function AppShell({ children }: AppShellProps) {
                     key={item.path}
                     to={item.path}
                     className={cn(
-                      'flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors',
+                      'flex items-center px-3 py-2 text-sm font-medium transition-colors',
                       isActive(item.path)
-                        ? 'bg-black text-white'
-                        : 'text-gray-700 hover:bg-gray-100'
+                        ? theme === 'dark'
+                          ? 'bg-gray-700 text-white'
+                          : 'bg-black text-white'
+                        : theme === 'dark'
+                          ? 'text-gray-300 hover:bg-gray-700'
+                          : 'text-gray-700 hover:bg-gray-100'
                     )}
+                    style={{ borderRadius: '4px' }}
                   >
                     <Icon className="mr-3 h-4 w-4" />
                     {item.label}
@@ -285,7 +330,10 @@ export function AppShell({ children }: AppShellProps) {
           </div>
 
           {/* Bottom Navigation */}
-          <div className="p-4 border-t border-gray-200">
+          <div className={cn(
+            "p-4 border-t",
+            theme === 'dark' ? 'border-gray-700' : 'border-gray-200'
+          )}>
             <nav className="space-y-1">
               {bottomNavItems.map((item) => {
                 const Icon = item.icon;
@@ -294,11 +342,16 @@ export function AppShell({ children }: AppShellProps) {
                     key={item.path}
                     to={item.path}
                     className={cn(
-                      'flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors',
+                      'flex items-center px-3 py-2 text-sm font-medium transition-colors',
                       isActive(item.path)
-                        ? 'bg-black text-white'
-                        : 'text-gray-700 hover:bg-gray-100'
+                        ? theme === 'dark'
+                          ? 'bg-gray-700 text-white'
+                          : 'bg-black text-white'
+                        : theme === 'dark'
+                          ? 'text-gray-300 hover:bg-gray-700'
+                          : 'text-gray-700 hover:bg-gray-100'
                     )}
+                    style={{ borderRadius: '4px' }}
                   >
                     <Icon className="mr-3 h-4 w-4" />
                     {item.label}
@@ -307,8 +360,14 @@ export function AppShell({ children }: AppShellProps) {
               })}
               <Button
                 variant="ghost"
-                className="w-full justify-start px-3 py-2 text-gray-700 hover:bg-gray-100"
+                className={cn(
+                  "w-full justify-start px-3 py-2 transition-colors",
+                  theme === 'dark'
+                    ? 'text-gray-300 hover:bg-gray-700'
+                    : 'text-gray-700 hover:bg-gray-100'
+                )}
                 onClick={handleSignOut}
+                style={{ borderRadius: '4px' }}
               >
                 <LogOut className="mr-3 h-4 w-4" />
                 Sign out
@@ -320,7 +379,10 @@ export function AppShell({ children }: AppShellProps) {
 
       {/* Header */}
       <div 
-        className="fixed top-0 h-16 bg-white border-b border-gray-200 z-30 transition-all duration-300"
+        className={cn(
+          "fixed top-0 h-16 z-30 transition-all duration-300 border-b",
+          theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
+        )}
         style={{
           left: headerLeft,
           right: headerRight
@@ -341,15 +403,25 @@ export function AppShell({ children }: AppShellProps) {
             )}
             {isMobile && (
               <div className="flex items-center space-x-2">
-                <img src="/logo.svg" alt="Valthera" className="h-12 w-12" />
-                <span className="text-lg font-semibold text-black">Valthera</span>
+                <img src="/logo.svg" alt="Valthera" className="h-12 w-12 logo-invert" />
+                <span className={cn(
+                  "text-lg font-semibold",
+                  theme === 'dark' ? 'text-white' : 'text-black'
+                )}>Valthera</span>
               </div>
             )}
           </div>
 
-          {/* Right side - User info and chat toggle */}
-          <div className="flex items-center space-x-4">
-            <span className="text-sm text-gray-600 hidden sm:inline">{user?.email}</span>
+          {/* Right side - User info, theme toggle, and chat toggle */}
+          <div className="flex items-center space-x-3">
+            <span className={cn(
+              "text-sm hidden sm:inline",
+              theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+            )}>{user?.email}</span>
+            
+            {/* Theme Toggle */}
+            <ThemeToggle />
+            
             {isAIAssistantEnabled && (!chatOpen || isMobile) && (
               <Button
                 variant="ghost"
@@ -381,7 +453,7 @@ export function AppShell({ children }: AppShellProps) {
           marginRight: contentMarginRight
         }}
       >
-        <div className="min-h-screen">
+        <div className="min-h-screen p-6">
           {children}
         </div>
       </div>
@@ -399,7 +471,12 @@ export function AppShell({ children }: AppShellProps) {
 
       {/* Feature Flag Toggle (Development Only) */}
       {import.meta.env.DEV && (
-        <div className="fixed bottom-4 right-4 z-50">
+        <div
+          className="fixed bottom-4 z-50"
+          style={{
+            right: chatOpen && !isMobile && isAIAssistantEnabled ? `${chatWidth + 16}px` : '16px'
+          }}
+        >
           <FeatureFlagToggle />
         </div>
       )}

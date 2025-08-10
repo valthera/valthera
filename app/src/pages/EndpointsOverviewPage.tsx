@@ -46,17 +46,17 @@ export function EndpointsOverviewPage() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'ready': return 'bg-green-100 text-green-800';
-      case 'training': return 'bg-yellow-100 text-yellow-800';
-      case 'failed': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'ready': return 'bg-green-100 dark:bg-green-950/20 text-green-800 dark:text-green-200';
+      case 'training': return 'bg-yellow-100 dark:bg-yellow-950/20 text-yellow-800 dark:text-yellow-200';
+      case 'failed': return 'bg-red-100 dark:bg-red-950/20 text-red-800 dark:text-red-200';
+      default: return 'bg-muted text-muted-foreground';
     }
   };
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
-        <div className="text-gray-500">Loading endpoints...</div>
+        <div className="text-muted-foreground">Loading endpoints...</div>
       </div>
     );
   }
@@ -66,13 +66,13 @@ export function EndpointsOverviewPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-black">Endpoints</h1>
-          <p className="text-gray-600 mt-1">
+          <h1 className="text-3xl font-bold text-foreground">Endpoints</h1>
+          <p className="text-muted-foreground mt-1">
             Manage all your API endpoints across projects
           </p>
         </div>
         
-        <Button asChild className="bg-black text-white hover:bg-gray-800">
+        <Button asChild className="bg-primary text-primary-foreground hover:bg-primary/90">
           <Link to="/dashboard">
             <Plus className="mr-2 h-4 w-4" />
             New Project
@@ -82,33 +82,33 @@ export function EndpointsOverviewPage() {
 
       {/* Endpoints Overview */}
       {endpoints.length === 0 ? (
-        <Card className="border border-gray-200">
+        <Card className="border">
           <CardContent className="text-center py-12">
-            <Plug className="mx-auto h-16 w-16 text-gray-400 mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No endpoints available</h3>
-            <p className="text-gray-600 mb-6">
+            <Plug className="mx-auto h-16 w-16 text-muted-foreground mb-4" />
+            <h3 className="text-lg font-medium text-foreground mb-2">No endpoints available</h3>
+            <p className="text-muted-foreground mb-6">
               Train concept classifiers to generate API endpoints for your applications
             </p>
             
             <div className="space-y-4">
-              <div className="flex items-center justify-center space-x-2 text-sm text-gray-500">
+              <div className="flex items-center justify-center space-x-2 text-sm text-muted-foreground">
                 <span className="flex items-center">
-                  <span className="w-6 h-6 rounded-full bg-gray-200 text-xs flex items-center justify-center mr-2">1</span>
+                  <span className="w-6 h-6 rounded-full bg-muted text-xs flex items-center justify-center mr-2">1</span>
                   Create Project
                 </span>
                 <ArrowRight className="h-4 w-4" />
                 <span className="flex items-center">
-                  <span className="w-6 h-6 rounded-full bg-gray-200 text-xs flex items-center justify-center mr-2">2</span>
+                  <span className="w-6 h-6 rounded-full bg-muted text-xs flex items-center justify-center mr-2">2</span>
                   Define Concepts
                 </span>
                 <ArrowRight className="h-4 w-4" />
                 <span className="flex items-center">
-                  <span className="w-6 h-6 rounded-full bg-gray-200 text-xs flex items-center justify-center mr-2">3</span>
+                  <span className="w-6 h-6 rounded-full bg-muted text-xs flex items-center justify-center mr-2">3</span>
                   Train & Deploy
                 </span>
               </div>
               
-              <Button asChild className="bg-black text-white hover:bg-gray-800">
+              <Button asChild className="bg-primary text-primary-foreground hover:bg-primary/90">
                 <Link to="/dashboard">
                   <Plus className="mr-2 h-4 w-4" />
                   Create Your First Project
@@ -121,33 +121,33 @@ export function EndpointsOverviewPage() {
         <div className="space-y-6">
           {/* Summary Stats */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card className="border border-gray-200">
+            <Card className="border">
               <CardContent className="p-4">
-                <div className="text-2xl font-bold text-black">{endpoints.length}</div>
-                <div className="text-sm text-gray-600">Total Endpoints</div>
+                <div className="text-2xl font-bold text-foreground">{endpoints.length}</div>
+                <div className="text-sm text-muted-foreground">Total Endpoints</div>
               </CardContent>
             </Card>
-            <Card className="border border-gray-200">
+            <Card className="border">
               <CardContent className="p-4">
-                <div className="text-2xl font-bold text-black">
+                <div className="text-2xl font-bold text-foreground">
                   {endpoints.filter(e => e.status === 'ready').length}
                 </div>
-                <div className="text-sm text-gray-600">Ready for Use</div>
+                <div className="text-sm text-muted-foreground">Ready for Use</div>
               </CardContent>
             </Card>
-            <Card className="border border-gray-200">
+            <Card className="border">
               <CardContent className="p-4">
-                <div className="text-2xl font-bold text-black">
+                <div className="text-2xl font-bold text-foreground">
                   {Math.round(endpoints.filter(e => e.status === 'ready').reduce((sum, e) => sum + e.accuracy, 0) / 
                    endpoints.filter(e => e.status === 'ready').length || 0)}%
                 </div>
-                <div className="text-sm text-gray-600">Average Accuracy</div>
+                <div className="text-sm text-muted-foreground">Average Accuracy</div>
               </CardContent>
             </Card>
           </div>
 
           {/* Endpoints Table */}
-          <Card className="border border-gray-200">
+          <Card className="border">
             <CardHeader>
               <CardTitle>All Endpoints</CardTitle>
             </CardHeader>
@@ -175,14 +175,14 @@ export function EndpointsOverviewPage() {
                         <TableCell>
                           <Link 
                             to={`/projects/${endpoint.projectId}/endpoints`}
-                            className="text-blue-600 hover:text-blue-800 hover:underline"
+                            className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline"
                           >
                             {project?.name}
                           </Link>
                         </TableCell>
                         <TableCell>
                           {endpoint.status === 'ready' && (
-                            <span className="font-medium text-green-600">
+                            <span className="font-medium text-green-600 dark:text-green-400">
                               {endpoint.accuracy.toFixed(1)}%
                             </span>
                           )}
@@ -194,7 +194,7 @@ export function EndpointsOverviewPage() {
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center space-x-2 max-w-xs">
-                            <code className="text-xs bg-gray-100 px-2 py-1 rounded truncate">
+                            <code className="text-xs bg-muted px-2 py-1 rounded truncate">
                               {endpoint.url}
                             </code>
                             <Button
@@ -229,7 +229,7 @@ export function EndpointsOverviewPage() {
           </Card>
 
           {/* Quick Start Guide */}
-          <Card className="border border-gray-200 bg-blue-50">
+          <Card className="border bg-blue-50 dark:bg-blue-950/20">
             <CardHeader>
               <CardTitle className="flex items-center">
                 <ExternalLink className="mr-2 h-5 w-5" />
@@ -239,23 +239,23 @@ export function EndpointsOverviewPage() {
             <CardContent>
               <div className="space-y-4">
                 <div>
-                  <h4 className="font-medium text-black mb-2">Authentication</h4>
-                  <div className="bg-black text-green-400 p-3 rounded-lg font-mono text-sm">
+                  <h4 className="font-medium text-foreground mb-2">Authentication</h4>
+                  <div className="bg-foreground text-background p-3 rounded-lg font-mono text-sm">
                     <pre>Authorization: Bearer YOUR_API_KEY</pre>
                   </div>
                 </div>
                 
                 <div>
-                  <h4 className="font-medium text-black mb-2">Make a Request</h4>
-                  <div className="bg-black text-green-400 p-3 rounded-lg font-mono text-sm overflow-x-auto">
+                  <h4 className="font-medium text-foreground mb-2">Make a Request</h4>
+                  <div className="bg-foreground text-background p-3 rounded-lg font-mono text-sm overflow-x-auto">
                     <pre>{`curl -X POST "YOUR_ENDPOINT_URL" \\
   -H "Authorization: Bearer YOUR_API_KEY" \\
   -F "video=@path/to/video.mp4"`}</pre>
                   </div>
                 </div>
 
-                <div className="bg-blue-100 p-4 rounded-lg">
-                  <p className="text-sm text-blue-800">
+                <div className="bg-blue-100 dark:bg-blue-950/40 p-4 rounded-lg">
+                  <p className="text-sm text-blue-800 dark:text-blue-200">
                     <strong>Need an API key?</strong> Visit the{' '}
                     <Link to="/api-keys" className="underline font-medium">
                       API Keys page

@@ -26,11 +26,26 @@ const VJEPA_REQUIREMENTS = {
 function ConceptCard({ concept, projectId, linkedVideoCount }: ConceptCardProps) {
   const getTrainingStatus = (count: number) => {
     if (count < VJEPA_REQUIREMENTS.minimum) {
-      return { status: 'insufficient', color: 'text-red-600', bgColor: 'bg-red-100', icon: XCircle };
+      return {
+        status: 'insufficient',
+        color: 'text-red-600 dark:text-red-300',
+        bgColor: 'bg-red-100 dark:bg-red-950/20',
+        icon: XCircle,
+      };
     } else if (count < VJEPA_REQUIREMENTS.recommended) {
-      return { status: 'minimum', color: 'text-yellow-600', bgColor: 'bg-yellow-100', icon: AlertTriangle };
+      return {
+        status: 'minimum',
+        color: 'text-yellow-600 dark:text-yellow-300',
+        bgColor: 'bg-yellow-100 dark:bg-yellow-950/20',
+        icon: AlertTriangle,
+      };
     } else {
-      return { status: 'good', color: 'text-green-600', bgColor: 'bg-green-100', icon: CheckCircle };
+      return {
+        status: 'good',
+        color: 'text-green-600 dark:text-green-300',
+        bgColor: 'bg-green-100 dark:bg-green-950/20',
+        icon: CheckCircle,
+      };
     }
   };
 
@@ -40,13 +55,13 @@ function ConceptCard({ concept, projectId, linkedVideoCount }: ConceptCardProps)
 
   return (
     <Link to={`/projects/${projectId}/concepts/${concept.id}`}>
-      <Card className="border border-gray-200 hover:border-gray-300 transition-colors cursor-pointer">
+      <Card className="border hover:border-border/60 transition-colors cursor-pointer">
         <CardHeader>
           <CardTitle className="flex items-center justify-between text-lg">
-            <span className="text-black">{concept.name}</span>
+            <span className="text-foreground">{concept.name}</span>
             <div className="flex items-center space-x-2">
               <StatusIcon className={`h-4 w-4 ${trainingStatus.color}`} />
-              <Settings className="h-4 w-4 text-gray-400" />
+              <Settings className="h-4 w-4 text-muted-foreground" />
             </div>
           </CardTitle>
         </CardHeader>
@@ -54,14 +69,14 @@ function ConceptCard({ concept, projectId, linkedVideoCount }: ConceptCardProps)
           {/* VJEPA Training Status */}
           <div className="space-y-2">
             <div className="flex items-center justify-between text-sm">
-              <span className="text-gray-600">VJEPA Training Videos</span>
+              <span className="text-muted-foreground">VJEPA Training Videos</span>
               <span className="font-medium">{linkedVideoCount}</span>
             </div>
             <Progress 
               value={progressValue} 
               className="h-2"
             />
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-muted-foreground">
               {linkedVideoCount < VJEPA_REQUIREMENTS.minimum 
                 ? `Need ${VJEPA_REQUIREMENTS.minimum - linkedVideoCount} more videos (minimum for VJEPA)`
                 : linkedVideoCount < VJEPA_REQUIREMENTS.recommended
@@ -74,7 +89,7 @@ function ConceptCard({ concept, projectId, linkedVideoCount }: ConceptCardProps)
           </div>
 
           {/* Status Summary */}
-          <div className={`p-3 rounded-lg ${trainingStatus.bgColor} border`}>
+          <div className={`p-3 rounded-lg ${trainingStatus.bgColor} border border-border`}>
             <div className="flex items-center space-x-2 text-sm">
               <StatusIcon className={`h-4 w-4 ${trainingStatus.color}`} />
               <span className={`font-medium ${trainingStatus.color}`}>
@@ -83,7 +98,7 @@ function ConceptCard({ concept, projectId, linkedVideoCount }: ConceptCardProps)
                 {trainingStatus.status === 'good' && 'Training Ready'}
               </span>
             </div>
-            <p className="text-xs mt-1 text-gray-600">
+            <p className="text-xs mt-1 text-muted-foreground">
               {trainingStatus.status === 'insufficient' && 'Need more videos to start VJEPA training'}
               {trainingStatus.status === 'minimum' && 'Can train, but more videos will improve accuracy'}
               {trainingStatus.status === 'good' && 'Good dataset size for reliable VJEPA training'}
@@ -91,11 +106,11 @@ function ConceptCard({ concept, projectId, linkedVideoCount }: ConceptCardProps)
           </div>
 
           {/* Quick Actions */}
-          <div className="flex items-center justify-between pt-2 border-t border-gray-100">
-            <span className="text-xs text-gray-500">Click to manage videos</span>
+          <div className="flex items-center justify-between pt-2 border-t border-border">
+            <span className="text-xs text-muted-foreground">Click to manage videos</span>
             <div className="flex items-center space-x-1">
-              <Video className="h-3 w-3 text-gray-400" />
-              <span className="text-xs text-gray-500">{linkedVideoCount} linked</span>
+              <Video className="h-3 w-3 text-muted-foreground" />
+              <span className="text-xs text-muted-foreground">{linkedVideoCount} linked</span>
             </div>
           </div>
         </CardContent>
@@ -203,7 +218,7 @@ export function DefineConcepts() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
-        <div className="text-gray-500">Loading concepts...</div>
+        <div className="text-muted-foreground">Loading concepts...</div>
       </div>
     );
   }
@@ -217,14 +232,14 @@ export function DefineConcepts() {
             variant="ghost"
             size="sm"
             onClick={() => navigate('/dashboard')}
-            className="text-gray-600 hover:text-black"
+            className="text-muted-foreground hover:text-foreground"
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Projects
           </Button>
           <div>
-            <h1 className="text-3xl font-bold text-black">Define Concepts</h1>
-            <p className="text-gray-600 mt-1">
+            <h1 className="text-3xl font-bold text-foreground">Define Concepts</h1>
+            <p className="text-muted-foreground mt-1">
               Define the visual concepts you want to classify and train
             </p>
           </div>
@@ -233,7 +248,7 @@ export function DefineConcepts() {
         <Button
           onClick={startTraining}
           disabled={!canStartTraining}
-          className="bg-black text-white hover:bg-gray-800 disabled:bg-gray-300"
+          className="bg-primary text-primary-foreground hover:bg-primary/90 disabled:bg-muted disabled:text-muted-foreground"
         >
           <Play className="mr-2 h-4 w-4" />
           Start Training
@@ -241,7 +256,7 @@ export function DefineConcepts() {
       </div>
 
       {/* Add New Concept */}
-      <Card className="border border-gray-200">
+      <Card className="border">
         <CardHeader>
           <CardTitle className="flex items-center text-lg">
             <Plus className="mr-2 h-5 w-5" />
@@ -249,7 +264,7 @@ export function DefineConcepts() {
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <HelpCircle className="ml-2 h-4 w-4 text-gray-400 cursor-help" />
+                  <HelpCircle className="ml-2 h-4 w-4 text-muted-foreground cursor-help" />
                 </TooltipTrigger>
                 <TooltipContent className="max-w-xs">
                   <p className="text-sm">
@@ -273,7 +288,7 @@ export function DefineConcepts() {
             <Button
               onClick={addConcept}
               disabled={!newConceptName.trim() || addingConcept}
-              className="bg-black text-white hover:bg-gray-800"
+              className="bg-primary text-primary-foreground hover:bg-primary/90"
             >
               {addingConcept ? 'Adding...' : 'Add'}
             </Button>
@@ -284,18 +299,18 @@ export function DefineConcepts() {
       {/* Concepts List */}
       {concepts.length === 0 ? (
         <div className="text-center py-12">
-          <Target className="mx-auto h-16 w-16 text-gray-400 mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No concepts defined</h3>
-          <p className="text-gray-600 mb-4">
+          <Target className="mx-auto h-16 w-16 text-muted-foreground mb-4" />
+          <h3 className="text-lg font-medium text-foreground mb-2">No concepts defined</h3>
+          <p className="text-muted-foreground mb-4">
             Add your first concept to start building a classifier
           </p>
           <div className="flex flex-wrap justify-center gap-2 max-w-md mx-auto">
-            <span className="text-sm text-gray-500">Examples:</span>
+            <span className="text-sm text-muted-foreground">Examples:</span>
             {exampleConcepts.map((example) => (
               <Badge
                 key={example}
                 variant="secondary"
-                className="cursor-pointer hover:bg-gray-200"
+                className="cursor-pointer hover:bg-accent"
                 onClick={() => setNewConceptName(example)}
               >
                 {example}
@@ -307,29 +322,29 @@ export function DefineConcepts() {
         <div>
           {/* Data Sources Info */}
           {linkedDataSources.length > 0 ? (
-            <div className="mb-6 bg-green-50 p-4 rounded-lg border border-green-200">
-              <div className="flex items-center text-sm text-green-800 mb-2">
+            <div className="mb-6 bg-green-50 dark:bg-green-950/20 p-4 rounded-lg border border-green-200 dark:border-green-800/30">
+              <div className="flex items-center text-sm text-green-800 dark:text-green-200 mb-2">
                 <LinkIcon className="h-4 w-4 mr-2" />
                 <span className="font-medium">Linked Data Sources:</span>
               </div>
               <div className="flex flex-wrap gap-2">
                 {linkedDataSources.map((source) => (
-                  <Badge key={source} variant="outline" className="bg-white">
+                  <Badge key={source} variant="outline" className="bg-background">
                     📁 {source}
                   </Badge>
                 ))}
               </div>
-              <p className="text-xs text-green-700 mt-2">
+              <p className="text-xs text-green-700 dark:text-green-300 mt-2">
                 Select videos from these data sources for each concept.
               </p>
             </div>
           ) : (
-            <div className="mb-6 bg-orange-50 p-4 rounded-lg border border-orange-200">
-              <div className="flex items-center text-sm text-orange-800 mb-2">
+            <div className="mb-6 bg-orange-50 dark:bg-orange-950/20 p-4 rounded-lg border border-orange-200 dark:border-orange-800/30">
+              <div className="flex items-center text-sm text-orange-800 dark:text-orange-200 mb-2">
                 <LinkIcon className="h-4 w-4 mr-2" />
                 <span className="font-medium">No Data Sources Linked</span>
               </div>
-              <p className="text-xs text-orange-700">
+              <p className="text-xs text-orange-700 dark:text-orange-300">
                 Go to project settings to link data sources first.
               </p>
             </div>
@@ -351,12 +366,12 @@ export function DefineConcepts() {
 
       {/* Training Status */}
       {concepts.length > 0 && (
-        <Card className="border border-gray-200 bg-gray-50">
+        <Card className="border bg-muted/30">
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="font-medium text-black">Training Status</h3>
-                <p className="text-sm text-gray-600">
+                <h3 className="font-medium text-foreground">Training Status</h3>
+                <p className="text-sm text-muted-foreground">
                   {canStartTraining 
                     ? 'Ready to start training with your defined concepts'
                     : 'Add video samples to at least one concept to enable training'
@@ -366,7 +381,7 @@ export function DefineConcepts() {
               <Button
                 onClick={startTraining}
                 disabled={!canStartTraining}
-                className="bg-black text-white hover:bg-gray-800 disabled:bg-gray-300"
+                className="bg-primary text-primary-foreground hover:bg-primary/90 disabled:bg-muted disabled:text-muted-foreground"
               >
                 <Play className="mr-2 h-4 w-4" />
                 Start Training

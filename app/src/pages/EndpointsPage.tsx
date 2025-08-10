@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
 import { api, type Endpoint } from '../lib/api';
+import { useTheme } from '../contexts/ThemeContext';
 
 export function EndpointsPage() {
   const { projectId } = useParams<{ projectId: string }>();
@@ -27,6 +28,7 @@ export function EndpointsPage() {
   const [testingEndpoint, setTestingEndpoint] = useState<string | null>(null);
   const [testResult, setTestResult] = useState<{ prediction: string; confidence: number } | null>(null);
   const [testFile, setTestFile] = useState<File | null>(null);
+  const { theme } = useTheme();
 
   useEffect(() => {
     if (projectId) {
@@ -135,14 +137,21 @@ export function EndpointsPage() {
             variant="ghost"
             size="sm"
             onClick={() => navigate(`/projects/${projectId}/training`)}
-            className="text-gray-600 hover:text-black"
+            className="text-muted-foreground hover:text-foreground"
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Training
           </Button>
           <div>
-            <h1 className="text-3xl font-bold text-black">API Endpoints</h1>
-            <p className="text-gray-600 mt-1">
+            <h1 className={`
+              text-3xl font-bold
+              ${theme === 'dark' ? 'text-white' : 'text-black'}
+            `}>
+              API Endpoints
+            </h1>
+            <p className={`
+              mt-1 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}
+            `}>
               Use these endpoints to classify robot behaviors in your applications
             </p>
           </div>
@@ -243,20 +252,20 @@ export function EndpointsPage() {
                                     {...getRootProps()}
                                     className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${
                                       isDragActive 
-                                        ? 'border-black bg-gray-50' 
-                                        : 'border-gray-300 hover:border-gray-400'
+                                        ? 'border-foreground bg-accent' 
+                                        : 'border-input hover:border-border'
                                     }`}
                                   >
                                     <input {...getInputProps()} />
-                                    <Video className="mx-auto h-12 w-12 text-gray-400 mb-2" />
+                                    <Video className="mx-auto h-12 w-12 text-muted-foreground mb-2" />
                                     {isDragActive ? (
-                                      <p className="text-sm text-gray-600">Drop the video here...</p>
+                                      <p className="text-sm text-muted-foreground">Drop the video here...</p>
                                     ) : (
                                       <div>
-                                        <p className="text-sm text-gray-600 mb-1">
+                                        <p className="text-sm text-muted-foreground mb-1">
                                           Drag & drop a video file, or click to select
                                         </p>
-                                        <p className="text-xs text-gray-500">
+                                        <p className="text-xs text-muted-foreground">
                                           MP4, AVI, MOV, MKV supported
                                         </p>
                                       </div>
@@ -264,7 +273,7 @@ export function EndpointsPage() {
                                   </div>
 
                                   {testFile && (
-                                    <div className="text-sm text-gray-600">
+                                    <div className="text-sm text-muted-foreground">
                                       Selected: {testFile.name}
                                     </div>
                                   )}
@@ -273,22 +282,22 @@ export function EndpointsPage() {
                                   <Button
                                     onClick={() => testEndpoint(endpoint.id)}
                                     disabled={!testFile || testingEndpoint === endpoint.id}
-                                    className="w-full bg-black text-white hover:bg-gray-800"
+                                    className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
                                   >
                                     {testingEndpoint === endpoint.id ? 'Testing...' : 'Test Classifier'}
                                   </Button>
 
                                   {/* Results */}
                                   {testResult && (
-                                    <div className="mt-4 p-4 bg-gray-50 rounded-lg">
-                                      <h4 className="font-medium text-black mb-2">Prediction Result:</h4>
+                                    <div className="mt-4 p-4 bg-accent rounded-lg">
+                                      <h4 className="font-medium text-foreground mb-2">Prediction Result:</h4>
                                       <div className="space-y-1">
                                         <div className="flex justify-between">
-                                          <span className="text-sm text-gray-600">Prediction:</span>
+                                          <span className="text-sm text-muted-foreground">Prediction:</span>
                                           <span className="text-sm font-medium">{testResult.prediction}</span>
                                         </div>
                                         <div className="flex justify-between">
-                                          <span className="text-sm text-gray-600">Confidence:</span>
+                                          <span className="text-sm text-muted-foreground">Confidence:</span>
                                           <span className="text-sm font-medium">
                                             {(testResult.confidence * 100).toFixed(1)}%
                                           </span>
@@ -313,7 +322,7 @@ export function EndpointsPage() {
 
       {/* Usage Examples */}
       {endpoints.length > 0 && (
-        <Card className="border border-gray-200">
+        <Card className="border">
           <CardHeader>
             <CardTitle className="flex items-center">
               <ExternalLink className="mr-2 h-5 w-5" />
@@ -322,37 +331,37 @@ export function EndpointsPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <h4 className="font-medium text-black mb-2">cURL Example</h4>
-              <div className="bg-black text-green-400 p-4 rounded-lg font-mono text-sm overflow-x-auto">
+              <h4 className="font-medium text-foreground mb-2">cURL Example</h4>
+              <div className={`
+                p-4 rounded-lg font-mono text-sm overflow-x-auto
+                ${theme === 'dark' 
+                  ? 'bg-gray-800 text-green-400 border border-gray-600' 
+                  : 'bg-black text-green-400'
+                }
+              `}>
                 <pre>{generateCurlExample(endpoints[0])}</pre>
               </div>
             </div>
 
             <div>
-              <h4 className="font-medium text-black mb-2">Python Example</h4>
-              <div className="bg-black text-green-400 p-4 rounded-lg font-mono text-sm overflow-x-auto">
-                <pre>{`import requests
-
-url = "${endpoints[0]?.url}"
-headers = {
-    "Authorization": "Bearer YOUR_API_KEY"
-}
-
-with open("video.mp4", "rb") as video_file:
-    files = {"video": video_file}
-    response = requests.post(url, headers=headers, files=files)
-    result = response.json()
-    print(f"Prediction: {result['prediction']}")
-    print(f"Confidence: {result['confidence']:.2%}")`}</pre>
+              <h4 className="font-medium text-foreground mb-2">Python Example</h4>
+              <div className={`
+                p-4 rounded-lg font-mono text-sm overflow-x-auto
+                ${theme === 'dark' 
+                  ? 'bg-gray-800 text-green-400 border border-gray-600' 
+                  : 'bg-black text-green-400'
+                }
+              `}>
+                <pre>{`import requests`}</pre>
               </div>
             </div>
 
-            <div className="bg-blue-50 p-4 rounded-lg">
-              <p className="text-sm text-blue-800">
+            <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg">
+              <p className="text-sm text-blue-800 dark:text-blue-200">
                 <strong>Need an API key?</strong> Visit the{' '}
                 <Button
                   variant="link"
-                  className="p-0 h-auto text-blue-800 underline"
+                  className="p-0 h-auto text-blue-800 dark:text-blue-200 underline"
                   onClick={() => navigate('/api-keys')}
                 >
                   API Keys page

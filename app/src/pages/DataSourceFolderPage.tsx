@@ -153,10 +153,10 @@ export function DataSourceFolderPage() {
   if (loading) {
     return (
       <div className="space-y-6">
-        <div className="h-8 bg-gray-200 rounded animate-pulse"></div>
+        <div className="h-8 bg-muted rounded animate-pulse"></div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[1, 2, 3].map(i => (
-            <div key={i} className="h-48 bg-gray-200 rounded animate-pulse"></div>
+            <div key={i} className="h-48 bg-muted rounded animate-pulse"></div>
           ))}
         </div>
       </div>
@@ -166,15 +166,15 @@ export function DataSourceFolderPage() {
   if (error) {
     return (
       <div className="space-y-6">
-        <div className="bg-red-50 border border-red-200 rounded-md p-4">
+        <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800/30 rounded-md p-4">
           <div className="flex">
             <div className="flex-shrink-0">
-              <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+              <svg className="h-5 w-5 text-red-400 dark:text-red-500" viewBox="0 0 20 20" fill="currentColor">
                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
               </svg>
             </div>
             <div className="ml-3">
-              <p className="text-sm text-red-800">{error}</p>
+              <p className="text-sm text-red-800 dark:text-red-200">{error}</p>
             </div>
           </div>
         </div>
@@ -193,15 +193,15 @@ export function DataSourceFolderPage() {
         <div className="flex items-center space-x-4">
           <Link 
             to="/data-sources"
-            className="flex items-center space-x-2 text-gray-600 hover:text-black transition-colors"
+            className="flex items-center space-x-2 text-muted-foreground hover:text-foreground transition-colors"
           >
             <ChevronLeft className="h-4 w-4" />
             <span>Back to Data Sources</span>
           </Link>
-          <div className="h-6 w-px bg-gray-300" />
+          <div className="h-6 w-px bg-border" />
           <div>
-            <h1 className="text-2xl font-bold text-black">{dataSource.name}</h1>
-            <p className="text-gray-600 mt-1">
+            <h1 className="text-2xl font-bold text-foreground">{dataSource.name}</h1>
+            <p className="text-muted-foreground mt-1">
               {files.length} videos • {totalSize} total
             </p>
           </div>
@@ -209,7 +209,7 @@ export function DataSourceFolderPage() {
         <div className="flex items-center space-x-3">
           <Button
             onClick={() => setShowUploadArea(!showUploadArea)}
-            className="flex items-center space-x-2 bg-black hover:bg-gray-800"
+            className="flex items-center space-x-2 bg-primary hover:bg-primary/90"
           >
             <Upload className="h-4 w-4" />
             <span>Upload Files</span>
@@ -221,39 +221,39 @@ export function DataSourceFolderPage() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card className="p-4">
           <div className="flex items-center space-x-2">
-            <FileVideo className="h-5 w-5 text-green-600" />
+            <FileVideo className="h-5 w-5 text-green-600 dark:text-green-400" />
             <div>
-              <div className="text-2xl font-bold text-black">{files.length}</div>
-              <div className="text-sm text-gray-600">Video Files</div>
+              <div className="text-2xl font-bold text-foreground">{files.length}</div>
+              <div className="text-sm text-muted-foreground">Video Files</div>
             </div>
           </div>
         </Card>
         <Card className="p-4">
           <div className="flex items-center space-x-2">
-            <HardDrive className="h-5 w-5 text-purple-600" />
+            <HardDrive className="h-5 w-5 text-purple-600 dark:text-purple-400" />
             <div>
-              <div className="text-2xl font-bold text-black">{totalSize}</div>
-              <div className="text-sm text-gray-600">Total Size</div>
+              <div className="text-2xl font-bold text-foreground">{totalSize}</div>
+              <div className="text-sm text-muted-foreground">Total Size</div>
             </div>
           </div>
         </Card>
         <Card className="p-4">
           <div className="flex items-center space-x-2">
-            <Calendar className="h-5 w-5 text-blue-600" />
+            <Calendar className="h-5 w-5 text-blue-600 dark:text-blue-400" />
             <div>
-              <div className="text-2xl font-bold text-black">
+              <div className="text-2xl font-bold text-foreground">
                 {files.length > 0 ? formatDate(files[0].uploadDate) : 'N/A'}
               </div>
-              <div className="text-sm text-gray-600">Last Upload</div>
+              <div className="text-sm text-muted-foreground">Last Upload</div>
             </div>
           </div>
         </Card>
         <Card className="p-4">
           <div className="flex items-center space-x-2">
-            <Upload className="h-5 w-5 text-orange-600" />
+            <Upload className="h-5 w-5 text-orange-600 dark:text-orange-400" />
             <div>
-              <div className="text-2xl font-bold text-black">{activeUploads}</div>
-              <div className="text-sm text-gray-600">Active Uploads</div>
+              <div className="text-2xl font-bold text-foreground">{activeUploads}</div>
+              <div className="text-sm text-muted-foreground">Active Uploads</div>
             </div>
           </div>
         </Card>
@@ -274,17 +274,17 @@ export function DataSourceFolderPage() {
         {files.map((file) => (
           <Card key={file.id} className="overflow-hidden hover:shadow-md transition-shadow">
             {/* Thumbnail */}
-            <div className="relative bg-gray-100 aspect-video">
+            <div className="relative bg-muted aspect-video">
               <div className="absolute inset-0 flex items-center justify-center">
-                <FileVideo className="h-12 w-12 text-gray-400" />
+                <FileVideo className="h-12 w-12 text-muted-foreground" />
               </div>
               <div className="absolute bottom-2 right-2">
-                <Badge variant="secondary" className="bg-black text-white text-xs">
+                <Badge variant="secondary" className="bg-foreground text-background text-xs">
                   {file.duration}
                 </Badge>
               </div>
               <div className="absolute top-2 right-2">
-                <Button variant="ghost" size="sm" className="p-1 bg-white/80">
+                <Button variant="ghost" size="sm" className="p-1 bg-background/80">
                   <MoreVertical className="h-3 w-3" />
                 </Button>
               </div>
@@ -292,9 +292,9 @@ export function DataSourceFolderPage() {
 
             {/* File Info */}
             <div className="p-4">
-              <h3 className="font-medium text-black truncate mb-2">{file.name}</h3>
+              <h3 className="font-medium text-foreground truncate mb-2">{file.name}</h3>
               
-              <div className="space-y-1 text-sm text-gray-600 mb-3">
+              <div className="space-y-1 text-sm text-muted-foreground mb-3">
                 <div className="flex justify-between">
                   <span>Size</span>
                   <span>{file.size}</span>
@@ -306,7 +306,7 @@ export function DataSourceFolderPage() {
               </div>
 
               {/* Actions */}
-              <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+              <div className="flex items-center justify-between pt-3 border-t border-border">
                 <Button variant="ghost" size="sm" className="p-1">
                   <Play className="h-3 w-3 mr-1" />
                   <span className="text-xs">Preview</span>
@@ -318,7 +318,7 @@ export function DataSourceFolderPage() {
                   <Button 
                     variant="ghost" 
                     size="sm" 
-                    className="p-1 text-red-600 hover:text-red-700"
+                    className="p-1 text-destructive hover:text-destructive/80"
                     onClick={() => handleDelete(file.id)}
                   >
                     <Trash2 className="h-3 w-3" />
@@ -333,14 +333,14 @@ export function DataSourceFolderPage() {
       {/* Empty State */}
       {files.length === 0 && (
         <div className="text-center py-12">
-          <FileVideo className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-black mb-2">No videos in this folder</h3>
-          <p className="text-gray-600 mb-4">
+          <FileVideo className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-foreground mb-2">No videos in this folder</h3>
+          <p className="text-muted-foreground mb-4">
             Upload your first video file to get started
           </p>
           <Button
             onClick={() => setShowUploadArea(true)}
-            className="bg-black hover:bg-gray-800"
+            className="bg-primary hover:bg-primary/90"
           >
             <Upload className="h-4 w-4 mr-2" />
             Upload Videos
