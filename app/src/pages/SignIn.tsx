@@ -41,7 +41,7 @@ export function SignIn() {
       <div className="max-w-md w-full space-y-8">
         <div className="text-center">
           <img
-            className="mx-auto h-12 w-auto"
+            className="mx-auto h-12 w-auto logo-invert"
             src="/logo.svg"
             alt="Valthera"
           />

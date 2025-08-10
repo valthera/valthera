@@ -58,3 +58,7 @@ html, body {
   --popover: #0f172a;
   --popover-foreground: #f8fafc;
 }
+
+/* Invert logo color in dark mode */
+img.logo-invert { filter: none; }
+.dark img.logo-invert { filter: invert(1); }

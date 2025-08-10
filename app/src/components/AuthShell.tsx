@@ -30,7 +30,7 @@ export function AuthShell({ children }: AuthShellProps) {
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
               <Link to="/" className="flex items-center">
-                <img src="/logo.svg" alt="Valthera" className="h-14 w-14" />
+                <img src="/logo.svg" alt="Valthera" className="h-14 w-14 logo-invert" />
               </Link>
             </div>
             <div className="flex items-center gap-3">

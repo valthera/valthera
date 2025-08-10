@@ -199,7 +199,7 @@ export function AppShell({ children }: AppShellProps) {
           )}>
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
-                <img src="/logo.svg" alt="Valthera" className="h-14 w-14" />
+                <img src="/logo.svg" alt="Valthera" className="h-14 w-14 logo-invert" />
                 <span className={cn(
                   "text-xl font-semibold",
                   theme === 'dark' ? 'text-white' : 'text-black'
@@ -393,7 +393,7 @@ export function AppShell({ children }: AppShellProps) {
             )}
             {isMobile && (
               <div className="flex items-center space-x-2">
-                <img src="/logo.svg" alt="Valthera" className="h-12 w-12" />
+                <img src="/logo.svg" alt="Valthera" className="h-12 w-12 logo-invert" />
                 <span className={cn(
                   "text-lg font-semibold",
                   theme === 'dark' ? 'text-white' : 'text-black'

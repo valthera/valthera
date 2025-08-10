@@ -26,7 +26,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     >
       <AppShell.Header>
         <Group h="100%" px="md" justify="space-between">
-          <img src="/logo.svg" alt="Valthera" className="h-14 w-14" />
+          <img src="/logo.svg" alt="Valthera" className="h-14 w-14 logo-invert" />
           <Group>
             <Text size="sm" c="dimmed">{user?.email}</Text>
           </Group>
