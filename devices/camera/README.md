@@ -3,6 +3,58 @@
 This is a multi-architecture Docker container for the camera device with RealSense camera support. 
 It can run on both x86_64 (Mac development) and ARM64 (Jetson Nano deployment).
 
+## Install & Use on Jetson Nano (Recommended)
+
+These steps let you reach the camera at a stable name (`http://jetson.local:8000`) without knowing its IP each time.
+
+### 1) Find the Jetson's IP to SSH in (first-time only)
+
+Pick any one method:
+
+- Router/DHCP: open your router's admin page or app and look for the Jetson device to get its IP
+- HDMI + keyboard: on the Jetson, run `hostname -I` and note the IP
+- Mac (Bonjour/mDNS present): try `ping jetson.local` or `dns-sd -B _workstation._tcp`
+- Linux (from another machine): `avahi-browse -art | grep -i jetson`
+
+Then SSH in:
+
+```bash
+ssh <user>@<jetson-ip>
+```
+
+### 2) Enable mDNS broadcast (so it’s always reachable at jetson.local)
+
+Run on the Jetson:
+
+```bash
+bash devices/camera/scripts/setup-mdns.sh jetson "Valthera Camera" 8000
+```
+
+This sets hostname, installs Avahi, and advertises an HTTP service on port 8000. After this, the device should be reachable at `jetson.local` on your LAN.
+
+### 3) Deploy the camera service (Docker Compose)
+
+The deploy script installs Docker + Compose plugin + NVIDIA runtime, then brings up the camera service with Jetson overrides (USB, runtime, port 8000). Compose files are local to this folder, so no `edge/` dependency:
+
+```bash
+# Adjust REPO_DIR if your repo is not at /opt/valthera/valthera on the Jetson
+export REPO_DIR=/opt/valthera/valthera
+bash devices/camera/scripts/deploy.sh
+```
+
+This builds from `devices/camera/Dockerfile` and starts the container via `edge/compose/docker-compose.yml` with the Jetson override `devices/camera/jetson.camera.override.yml`.
+
+### 4) Test from your laptop
+
+```bash
+ping -c 3 jetson.local
+curl http://jetson.local:8000/health
+```
+
+In your React app, call `http://jetson.local:8000/health` (or your feed endpoint) from clients on the same LAN.
+
+> Note: If your web app runs over HTTPS, the browser will block plain HTTP calls. For production, proxy via your backend or add HTTPS on the Jetson.
+
 ## Quick Start
 
 ### Using the build script (recommended)
