@@ -62,21 +62,18 @@ const SampleDistributionChart = () => {
   return (
     <ResponsiveContainer width="100%" height={200}>
       <BarChart data={chartData.distribution}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-        <XAxis 
-          dataKey="name" 
-          fontSize={12}
+        <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+        <XAxis
+          dataKey="name"
           angle={-45}
           textAnchor="end"
           height={80}
+          tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }}
+          stroke="var(--border)"
         />
-        <YAxis fontSize={12} />
-        <Tooltip />
-        <Bar dataKey="value" radius={[2, 2, 0, 0]}>
-          {chartData.distribution.map((entry, index) => (
-            <Cell key={`cell-${index}`} fill={entry.color} />
-          ))}
-        </Bar>
+        <YAxis tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }} stroke="var(--border)" />
+        <Tooltip contentStyle={{ background: 'var(--background)', color: 'var(--foreground)', border: '1px solid var(--border)' }} />
+        <Bar dataKey="value" radius={[2, 2, 0, 0]} fill="var(--foreground)" />
       </BarChart>
     </ResponsiveContainer>
   );
@@ -87,23 +84,23 @@ const TrainingLossLineChart = () => {
   return (
     <ResponsiveContainer width="100%" height={200}>
       <LineChart data={chartData.trainingLoss}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-        <XAxis dataKey="epoch" fontSize={12} />
-        <YAxis fontSize={12} />
-        <Tooltip />
-        <Line 
-          type="monotone" 
-          dataKey="loss" 
-          stroke="#000000" 
+        <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+        <XAxis dataKey="epoch" tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }} stroke="var(--border)" />
+        <YAxis tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }} stroke="var(--border)" />
+        <Tooltip contentStyle={{ background: 'var(--background)', color: 'var(--foreground)', border: '1px solid var(--border)' }} />
+        <Line
+          type="monotone"
+          dataKey="loss"
+          stroke="var(--primary)"
           strokeWidth={2}
-          dot={{ fill: '#000000', strokeWidth: 2, r: 4 }}
+          dot={{ fill: 'var(--primary)', strokeWidth: 2, r: 4 }}
         />
-        <Line 
-          type="monotone" 
-          dataKey="accuracy" 
-          stroke="#666666" 
+        <Line
+          type="monotone"
+          dataKey="accuracy"
+          stroke="var(--foreground)"
           strokeWidth={2}
-          dot={{ fill: '#666666', strokeWidth: 2, r: 4 }}
+          dot={{ fill: 'var(--foreground)', strokeWidth: 2, r: 4 }}
         />
       </LineChart>
     </ResponsiveContainer>
@@ -210,9 +207,51 @@ const aiResponses = [
 export function AIAssistant() {
   const [messages, setMessages] = useState<Message[]>([
     {
-      id: '1',
+      id: 'm1',
+      role: 'user',
+      content: 'I want to train a model to classify robot arm behavior.'
+    },
+    {
+      id: 'm2',
       role: 'assistant',
-      content: "Hi! I'm your AI Research Assistant. I can help you analyze your training data, suggest improvements, and interpret results. Try asking about class distribution, training readiness, or behavior recommendations."
+      content:
+        [
+          'Great — let’s scope it so we pick the right training plan. Could you clarify:',
+          '• Behaviors to classify (discrete labels)?',
+          '• Data modality and source (RGB, depth, RGB‑D), resolution/FPS, camera viewpoint?',
+          '• Labeling granularity (clip‑level vs frame‑level) and approximate samples per class?',
+          '• Scene variation (objects/background/lighting) and any “negative/other” class?',
+          '• Constraints (latency, on‑device vs server, privacy)?'
+        ].join('\n')
+    },
+    {
+      id: 'm3',
+      role: 'user',
+      content:
+        [
+          'Behaviors: pick, place, idle, error.',
+          'Data: ~20 short RGB‑D clips per behavior (640×480, 15–30fps), clip‑level labels.',
+          'Single overhead camera, indoor workspace, varied small objects.'
+        ].join('\n')
+    },
+    {
+      id: 'm4',
+      role: 'assistant',
+      content:
+        [
+          'Plan:',
+          '1) Start with video classification using pretrained vision embeddings and a lightweight temporal head. Options:',
+          '   • RGB baseline: extract per‑frame embeddings (e.g., CLIP/V-JEPA2) → temporal pooling → linear classifier.',
+          '   • RGB‑D: early fuse depth as an extra channel or train a parallel depth encoder and late‑fuse scores.',
+          '2) Dataset: split ~70/15/15 (train/val/test). Ensure class balance; add an "other" class if needed.',
+          '3) Augmentations: color jitter (RGB), slight spatial jitter, time cropping; keep depth scaling consistent.',
+          '4) Training: 10–20 epochs, monitor val accuracy and confusion. Target ≥85% with current variety.',
+          '5) Next steps: upload/organize clips, define labels, kick off a training job.'
+        ].join('\n'),
+      actions: [
+        { label: 'Link Data Sources', href: '/data-sources', variant: 'outline' },
+        { label: 'Define Concepts', href: '/projects/demo-project/concepts' }
+      ]
     }
   ]);
   const [input, setInput] = useState('');
@@ -269,7 +308,9 @@ export function AIAssistant() {
   return (
     <div className="flex flex-col h-full bg-background border-l border-border">
       {/* Header */}
-      <div className="p-4 border-b border-border bg-accent">
+      <div className="p-4 border-b border-border" style={{
+        background: 'linear-gradient(180deg, rgba(18,24,38,1) 0%, rgba(17,24,39,1) 100%)'
+      }}>
         <h3 className="font-medium text-foreground">AI Research Assistant</h3>
         <p className="text-xs text-muted-foreground mt-1">
           Analyze training data • Suggest improvements • Interpret results
@@ -285,7 +326,7 @@ export function AIAssistant() {
               className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
             >
               <div
-                className={`max-w-[80%] rounded-lg px-3 py-2 text-sm ${
+                className={`max-w-[80%] rounded-lg px-3 py-2 text-sm shadow-sm ${
                   message.role === 'user'
                     ? 'bg-primary text-primary-foreground'
                     : 'bg-accent text-foreground border border-border'
@@ -367,7 +408,7 @@ export function AIAssistant() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyPress={handleKeyPress}
-            placeholder="Ask about training strategy, data analysis..."
+            placeholder="Message"
             className="flex-1 text-sm"
           />
           <Button
