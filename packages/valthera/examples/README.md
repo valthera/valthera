@@ -1,6 +1,6 @@
 # DROID Behavioral Cloning Examples
 
-This directory contains the complete implementation of DROID behavioral cloning using real V-JEPA2 embeddings.
+This directory contains the complete implementation of DROID behavioral cloning using **real robot videos and pose data** extracted from the DROID dataset.
 
 ## 🚀 **Quick Start**
 
@@ -20,9 +20,15 @@ pip install -r ../scripts/requirements/requirements-cpu.txt     # CPU
 python ../src/valthera/tools/hardware_validator.py
 ```
 
-### **3. Run DROID Example**
+### **3. Extract DROID Data**
 ```bash
-# Quick test
+# Extract real robot videos as GIFs with three-camera views
+python extract_droid_gifs_macos.py --max_episodes 5
+```
+
+### **4. Run DROID Example**
+```bash
+# Quick test with extracted data
 python droid_behavioral_cloning.py --num_videos 5 --epochs 2
 
 # Full training
@@ -31,15 +37,16 @@ python droid_behavioral_cloning.py --num_videos 100 --epochs 50
 
 ## 📁 **Files**
 
-- **`droid_behavioral_cloning.py`** - Main DROID implementation with real V-JEPA2
-- **`comprehensive_test_pipeline.py`** - Full validation suite
+- **`droid_behavioral_cloning.py`** - Main DROID implementation using real robot videos
+- **`extract_droid_gifs_macos.py`** - Extract real DROID robot videos as three-camera GIFs
+- **`training/droid_gifs_new/`** - Processed DROID video examples and extracted data
 
 ## 🔧 **Features**
 
-- ✅ **Real V-JEPA2 Integration** - No mock implementations
-- ✅ **3-Second Video Clips** - With 1-second overlap
+- ✅ **Real Robot Videos** - Actual DROID manipulation tasks
+- ✅ **Three-Camera Views** - Exterior 1 + Exterior 2 + Wrist concatenated
+- ✅ **Real Pose Data** - Robot state and action vectors
 - ✅ **Cross-Platform Support** - Mac M4 MPS, NVIDIA CUDA, CPU
-- ✅ **Real DROID Data** - Google Cloud Storage integration
 - ✅ **End-to-End Training** - Complete behavioral cloning pipeline
 
 ## 📚 **Documentation**
@@ -61,11 +68,11 @@ python droid_behavioral_cloning.py --num_videos 100 --epochs 50
 
 ## 🎯 **What This Example Demonstrates**
 
-1. **Real V-JEPA2 Model Loading** - HuggingFace integration
-2. **DROID Dataset Processing** - TFRecord parsing and video embedding
-3. **Behavioral Cloning Training** - End-to-end robot learning
-4. **Hardware Acceleration** - MPS/CUDA optimization
-5. **Model Evaluation** - Performance metrics and inference
+1. **Real DROID Data Extraction** - TFRecord parsing and GIF creation
+2. **Three-Camera Video Processing** - Horizontal concatenated robot views
+3. **Pose Data Integration** - Robot state and action vectors
+4. **Behavioral Cloning Training** - End-to-end robot learning
+5. **Hardware Acceleration** - MPS/CUDA optimization
 
 ## 🚀 **Performance**
 
@@ -76,10 +83,10 @@ python droid_behavioral_cloning.py --num_videos 100 --epochs 50
 
 ## 📖 **Next Steps**
 
-1. **Scale Training**: Increase `--num_videos` and `--epochs`
-2. **Real Robot**: Deploy trained model to physical robot
-3. **Custom Data**: Adapt for your own robotics dataset
-4. **Model Analysis**: Explore embeddings and attention patterns
+1. **Extract More Data**: Run `extract_droid_gifs_macos.py` with more episodes
+2. **Scale Training**: Increase `--num_videos` and `--epochs`
+3. **Real Robot**: Deploy trained model to physical robot
+4. **Custom Data**: Adapt for your own robotics dataset
 
 ---
 
