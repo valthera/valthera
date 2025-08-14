@@ -292,3 +292,5 @@ samconfig.toml
 
 
 tmp/
+
+training/

@@ -1,0 +1,30 @@
+# Core dependencies for Valthera
+# This file is maintained for compatibility. For Poetry users, use pyproject.toml instead.
+
+# Core ML dependencies
+torch>=1.12.0
+torchvision>=0.13.0
+numpy>=1.21.0
+pandas>=1.3.0
+scikit-learn>=1.0.0
+
+# Visualization and data processing
+matplotlib>=3.5.0
+seaborn>=0.11.0
+opencv-python>=4.5.0
+pillow>=9.0.0
+
+# Configuration and utilities
+pyyaml>=6.0
+click>=8.0.0
+tqdm>=4.64.0
+
+# ML tools and monitoring
+wandb>=0.13.0
+tensorboard>=2.8.0
+transformers>=4.20.0
+datasets>=2.0.0
+accelerate>=0.12.0
+
+# Note: For Poetry users, dependencies are managed in pyproject.toml
+# Install with: poetry install

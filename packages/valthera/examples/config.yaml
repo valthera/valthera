@@ -1,0 +1,99 @@
+# DROID Behavioral Cloning Configuration
+
+# Dataset Configuration
+dataset:
+  num_videos: 50
+  data_root: "droid_100"
+  cache_dir: "cache/droid_pretrain"
+  max_episode_length: 200
+
+# Model Configuration
+model:
+  vision:
+    output_dim: 768
+    image_size: [224, 224]
+    freeze_encoder: true
+    use_pretrained: false
+  
+  policy:
+    input_dim: 768
+    hidden_dim: 256
+    num_layers: 2
+    output_dim: 6  # [dx, dy, dz, dyaw, grip, stop]
+    use_lstm: false
+    dropout: 0.1
+  
+  freeze_vision: true
+  use_sequence: true
+  sequence_length: 32
+
+# Training Configuration
+training:
+  learning_rate: 1.0e-4
+  weight_decay: 1.0e-4
+  batch_size: 16
+  num_epochs: 20
+  val_split: 0.1
+  smooth_lambda: 0.01
+  
+  # Loss weights
+  loss_weights:
+    pose: 1.0
+    grip: 1.0
+    stop: 1.0
+    smoothness: 0.01
+  
+  # Optimization
+  optimizer: "AdamW"
+  scheduler: "ReduceLROnPlateau"
+  gradient_clip: 1.0
+  
+  # Checkpointing
+  save_dir: "checkpoints"
+  save_frequency: 5
+  keep_best: 3
+
+# Data Processing
+processing:
+  # Mock V-JEPA2 settings (replace with real model)
+  mock_vjepa2:
+    feature_dim: 768
+    temporal_consistency: 0.1
+  
+  # Robot action generation
+  robot_actions:
+    pose_delta_std: 0.01
+    grip_change_prob: 0.1
+    stop_signal_prob: 0.02
+
+# Evaluation
+evaluation:
+  metrics:
+    - "pose_mae"
+    - "grip_accuracy"
+    - "stop_accuracy"
+  
+  test_split: 0.1
+  batch_size: 32
+
+# Logging
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file: "logs/droid_bc.log"
+  console: true
+
+# Hardware
+hardware:
+  device: "auto"  # "auto", "cuda", "cpu"
+  num_workers: 0
+  pin_memory: false
+
+# Deployment
+deployment:
+  model_path: "checkpoints/droid_bc_model.pt"
+  feature_stats_path: "cache/droid_pretrain/feature_stats.npz"
+  inference:
+    batch_size: 1
+    sequence_length: 32
+    use_hidden_state: true

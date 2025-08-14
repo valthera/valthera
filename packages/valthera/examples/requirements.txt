@@ -1,0 +1,22 @@
+# DROID Behavioral Cloning Example Requirements
+
+# Core dependencies
+torch>=2.0.0
+torchvision>=0.15.0
+numpy>=1.21.0
+tqdm>=4.64.0
+
+# Vision processing
+opencv-python>=4.5.0
+Pillow>=8.0.0
+
+# Data handling
+tensorflow-datasets>=4.0.0
+
+# Utilities
+pathlib2>=2.3.0; python_version < "3.4"
+typing-extensions>=4.0.0; python_version < "3.8"
+
+# Optional: For better performance
+# torch-scatter  # If using sparse operations
+# torch-geometric  # If using graph neural networks

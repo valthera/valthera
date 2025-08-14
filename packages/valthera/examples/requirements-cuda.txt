@@ -1,0 +1,38 @@
+# Requirements for NVIDIA CUDA acceleration
+# Install with: pip install -r requirements-cuda.txt
+
+# PyTorch with CUDA support (adjust CUDA version as needed)
+# For CUDA 11.8:
+torch>=2.1.0+cu118
+torchvision>=0.16.0+cu118
+torchaudio>=2.1.0+cu118
+
+# For CUDA 12.1 (newer):
+# torch>=2.1.0+cu121
+# torchvision>=0.16.0+cu121
+# torchaudio>=2.1.0+cu121
+
+# Alternative: Install from PyTorch index
+# pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+
+# V-JEPA2 and video processing
+transformers>=4.35.0
+opencv-python>=4.8.0
+pillow>=10.0.0
+
+# Scientific computing
+numpy>=1.24.0
+scipy>=1.11.0
+
+# Data handling
+pandas>=2.0.0
+h5py>=3.8.0
+
+# Optional: Direct V-JEPA2 from Meta (if available)
+# git+https://github.com/facebookresearch/jepa.git
+
+# Development and testing
+pytest>=7.4.0
+pytest-cov>=4.1.0
+black>=23.0.0
+flake8>=6.0.0
