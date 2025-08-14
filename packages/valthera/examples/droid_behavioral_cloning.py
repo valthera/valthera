@@ -126,7 +126,9 @@ class TFRecordParser:
 def get_optimal_device():
     """Get the optimal device for training (MPS for Mac M4, CUDA for NVIDIA, CPU fallback)."""
     try:
-        # Import hardware validator
+        # Import hardware validator from new location
+        import sys
+        sys.path.append(str(Path(__file__).parent.parent / "src" / "valthera" / "tools"))
         from hardware_validator import HardwareDetector
         
         # Use hardware validator for detection
@@ -587,9 +589,24 @@ class DROIDDataProcessor:
             cached_targets = self.cache_dir / "droid_tfrecord_targets.npy"
             
             if cached_features.exists() and cached_targets.exists():
-                logger.info("  Loading cached TFRecord data")
-                all_features = [np.load(cached_features)]
-                all_targets = [np.load(cached_targets)]
+                # Check if cached data matches current feature dimension
+                cached_features_data = np.load(cached_features)
+                if cached_features_data.shape[-1] == self.feature_dim:
+                    logger.info("  Loading cached TFRecord data")
+                    all_features = [cached_features_data]
+                    all_targets = [np.load(cached_targets)]
+                else:
+                    logger.warning(f"  Cached data has wrong feature dimension: {cached_features_data.shape[-1]} vs {self.feature_dim}")
+                    logger.info("  Regenerating data with correct dimensions...")
+                    # Process the TFRecord data
+                    features, targets = self._process_single_episode(self.data_root)
+                    
+                    # Save to cache
+                    np.save(cached_features, features)
+                    np.save(cached_targets, targets)
+                    
+                    all_features = [features]
+                    all_targets = [targets]
             else:
                 # Process the TFRecord data
                 features, targets = self._process_single_episode(self.data_root)
@@ -918,6 +935,10 @@ class DROIDBehavioralCloningExample:
             "sequence_length": self.config.get("sequence_length", 32)
         }
         
+        logger.info(f"Initializing model with config:")
+        logger.info(f"  Vision output_dim: {model_config['vision']['output_dim']}")
+        logger.info(f"  Policy input_dim: {model_config['policy']['input_dim']}")
+        
         self.model = BehavioralCloningModel(model_config)
         
         # Show model info
@@ -927,6 +948,10 @@ class DROIDBehavioralCloningExample:
         logger.info(f"  Policy network: {model_info['policy_network']['parameters']:,} parameters")
         logger.info(f"  Total parameters: {model_info['total_parameters']:,}")
         logger.info(f"  Trainable parameters: {model_info['trainable_parameters']:,}")
+        
+        # Debug: Check actual dimensions
+        logger.info(f"Debug - Vision feature dim: {self.model.vision_encoder.get_feature_dim()}")
+        logger.info(f"Debug - Policy input dim: {self.model.policy_network.input_dim}")
     
     def _setup_training(self, features: np.ndarray, targets: np.ndarray):
         """Setup the trainer."""
@@ -993,8 +1018,19 @@ def main():
                        help="Sequence length for training (default: 32)")
     parser.add_argument("--data_root", type=str, default="training/droid_100",
                        help="Path to DROID dataset (default: training/droid_100)")
+    parser.add_argument("--clear_cache", action="store_true",
+                       help="Clear cached features and regenerate data")
     
     args = parser.parse_args()
+    
+    # Clear cache if requested
+    if args.clear_cache:
+        import shutil
+        cache_dir = Path("training/cache")
+        if cache_dir.exists():
+            logger.info("Clearing feature cache...")
+            shutil.rmtree(cache_dir)
+            logger.info("✅ Cache cleared")
     
     # Configuration
     config = {

@@ -67,7 +67,7 @@ class VisionEncoder(BaseComponent, nn.Module):
             nn.Linear(256 * 4 * 4, 1024),
             nn.ReLU(inplace=True),
             nn.Dropout(0.5),
-            nn.Linear(1024, self.output_dim)
+            nn.Linear(1024, self.output_dim)  # Use dynamic output_dim
         )
         
         return nn.ModuleDict({

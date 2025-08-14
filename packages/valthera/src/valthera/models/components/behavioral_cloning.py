@@ -114,8 +114,8 @@ class BehavioralCloningModel(BaseComponent, nn.Module):
             },
             'policy_network': {
                 'type': type(self.policy_network).__name__,
-                'input_dim': self.policy_network.get_action_dim(),
-                'hidden_dim': self.policy_network.get_hidden_dim(),
+                'input_dim': self.policy_network.input_dim,
+                'hidden_dim': self.policy_network.hidden_dim,
                 'parameters': sum(p.numel() for p in self.policy_network.parameters())
             },
             'total_parameters': sum(p.numel() for p in self.parameters()),
