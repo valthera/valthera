@@ -48,7 +48,11 @@ def start_camera_if_needed() -> None:
         raise RuntimeError("pyrealsense2 not available in this environment")
 
     cfg = rs.config()  # type: ignore
-    cfg.enable_stream(rs.stream.depth, STREAM_W, STREAM_H, rs.format.z16, FPS)  # type: ignore
+    
+    # Enable all three streams: left RGB, right RGB, and depth
+    cfg.enable_stream(rs.stream.color, STREAM_W, STREAM_H, rs.format.bgr8, FPS)  # Left RGB
+    cfg.enable_stream(rs.stream.depth, STREAM_W, STREAM_H, rs.format.z16, FPS)   # Depth
+    
     pipeline = rs.pipeline()  # type: ignore
     profile = pipeline.start(cfg)
 
@@ -56,6 +60,8 @@ def start_camera_if_needed() -> None:
     depth_scale_m = float(depth_sensor.get_depth_scale())
 
     depth_stream = profile.get_stream(rs.stream.depth)
+    color_stream = profile.get_stream(rs.stream.color)
+    
     intr = depth_stream.as_video_stream_profile().get_intrinsics()
     intrinsics_cache = {
         "width": int(intr.width),
@@ -81,6 +87,11 @@ def health() -> JSONResponse:
         "realsense_available": REALSENSE_AVAILABLE,
         "camera_started": pipeline is not None,
         "intrinsics_ready": intrinsics_cache is not None,
+        "streams": {
+            "depth": "z16_le",
+            "left_rgb": "bgr8", 
+            "right_rgb": "bgr8"
+        } if pipeline is not None else None
     }
     return JSONResponse(status)
 
@@ -118,22 +129,51 @@ async def ws_depth(ws: WebSocket):
         assert pipeline is not None
         while True:
             frames = pipeline.wait_for_frames()  # type: ignore
-            d = frames.get_depth_frame()
-            if not d:
+            
+            # Get all three frames
+            color_frame = frames.get_color_frame()
+            depth_frame = frames.get_depth_frame()
+            
+            if not color_frame or not depth_frame:
                 await asyncio.sleep(0)
                 continue
-            depth_np = np.asanyarray(d.get_data()).astype(np.uint16)
+            
+            # Convert frames to numpy arrays
+            color_np = np.asanyarray(color_frame.get_data())  # BGR8 format
+            depth_np = np.asanyarray(depth_frame.get_data()).astype(np.uint16)  # Z16 format
+            
+            # Create comprehensive header with all stream info
             header = {
                 "type": "frame",
-                "fmt": "z16_le",
-                "width": int(depth_np.shape[1]),
-                "height": int(depth_np.shape[0]),
-                "ts_ms": float(d.get_timestamp()),
+                "timestamp": float(color_frame.get_timestamp()),
+                "depth": {
+                    "width": int(depth_np.shape[1]),
+                    "height": int(depth_np.shape[0]),
+                    "format": "z16_le",
+                    "scale_m": depth_scale_m if depth_scale_m is not None else 0.001
+                },
+                "left_rgb": {
+                    "width": int(color_np.shape[1]),
+                    "height": int(color_np.shape[0]),
+                    "format": "bgr8"
+                },
+                "right_rgb": {
+                    "width": int(color_np.shape[1]),
+                    "height": int(color_np.shape[0]),
+                    "format": "bgr8"
+                }
             }
-            if depth_scale_m is not None:
-                header["depth_scale_m"] = depth_scale_m
+            
+            # Send header first
             await ws.send_text(json.dumps(header))
-            await ws.send_bytes(depth_np.tobytes(order="C"))
+            
+            # Send binary data in sequence: left RGB, right RGB, depth
+            # Note: Current RealSense setup has one color stream, so we send the same data for both left/right
+            # TODO: For true stereo, enable rs.stream.infrared for left/right IR streams or use rs.stream.color with stereo config
+            await ws.send_bytes(color_np.tobytes(order="C"))  # Left RGB (same as right for now)
+            await ws.send_bytes(color_np.tobytes(order="C"))  # Right RGB (same as left for now)
+            await ws.send_bytes(depth_np.tobytes(order="C"))  # Depth
+            
             await asyncio.sleep(0)
     except WebSocketDisconnect:
         return
