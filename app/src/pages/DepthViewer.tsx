@@ -5,13 +5,18 @@ import { Input } from '../components/ui/input'
 import { Button } from '../components/ui/button'
 import { Alert, AlertDescription, AlertTitle } from '../components/ui/alert'
 
-type DepthHeader = {
-  type: 'frame'
-  fmt: 'z16_le'
+type StreamInfo = {
   width: number
   height: number
-  ts_ms: number
-  depth_scale_m?: number
+  format: string
+}
+
+type DepthHeader = {
+  type: 'frame'
+  timestamp: number
+  depth: StreamInfo & { scale_m: number }
+  left_rgb: StreamInfo
+  right_rgb: StreamInfo
 }
 
 export function DepthViewer() {
@@ -28,12 +33,21 @@ export function DepthViewer() {
   const [lastTimestampMs, setLastTimestampMs] = useState<number | null>(null)
   const [lastMessageAt, setLastMessageAt] = useState<number>(0)
 
-  const containerRef = useRef<HTMLDivElement | null>(null)
-  const canvasRef = useRef<HTMLCanvasElement | null>(null)
+  // Separate refs for RGB and depth
+  const rgbContainerRef = useRef<HTMLDivElement | null>(null)
+  const depthContainerRef = useRef<HTMLDivElement | null>(null)
+  const rgbCanvasRef = useRef<HTMLCanvasElement | null>(null)
+  const depthCanvasRef = useRef<HTMLCanvasElement | null>(null)
+  
   const websocketRef = useRef<WebSocket | null>(null)
-  const expectingBinaryRef = useRef<boolean>(false)
   const latestHeaderRef = useRef<DepthHeader | null>(null)
-  const latestBufferRef = useRef<ArrayBuffer | null>(null)
+  const rgbBufferRef = useRef<ArrayBuffer | null>(null)
+  const depthBufferRef = useRef<ArrayBuffer | null>(null)
+  
+  // Message counter for the 3-message sequence
+  const messageCounterRef = useRef<number>(0)
+  
+  // Keep the working depth rendering structure
   const lastDrawnSizeRef = useRef<{ w: number; h: number } | null>(null)
   const cachedImageDataRef = useRef<ImageData | null>(null)
   const rafRef = useRef<number | null>(null)
@@ -58,84 +72,193 @@ export function DepthViewer() {
     setLastTimestampMs(tsMs)
   }
 
-  const renderLoop = () => {
-    const displayCanvas = canvasRef.current
-    const container = containerRef.current
+  const renderRgb = () => {
+    const canvas = rgbCanvasRef.current
+    const container = rgbContainerRef.current
     const hdr = latestHeaderRef.current
-    const buf = latestBufferRef.current
-    if (displayCanvas && container && hdr && buf) {
-      // Prepare offscreen canvas once
-      if (!offscreenCanvasRef.current) {
-        offscreenCanvasRef.current = document.createElement('canvas')
-      }
-      const offscreen = offscreenCanvasRef.current
-      if (!offscreenCtxRef.current) {
-        offscreenCtxRef.current = offscreen.getContext('2d')
-      }
-      const offctx = offscreenCtxRef.current
-      if (!offctx) {
-        rafRef.current = window.requestAnimationFrame(renderLoop)
-        return
-      }
+    const buf = rgbBufferRef.current
+    
+    if (!canvas || !container || !hdr || !buf) {
+      console.log('renderRgb early return:', { hasCanvas: !!canvas, hasContainer: !!container, hasHeader: !!hdr, hasBuffer: !!buf })
+      return
+    }
 
-      // Ensure offscreen matches frame dims
-      if (!lastDrawnSizeRef.current || lastDrawnSizeRef.current.w !== hdr.width || lastDrawnSizeRef.current.h !== hdr.height) {
-        offscreen.width = hdr.width
-        offscreen.height = hdr.height
-        lastDrawnSizeRef.current = { w: hdr.width, h: hdr.height }
-        cachedImageDataRef.current = null
-      }
+    console.log('renderRgb called with buffer size:', buf.byteLength)
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
 
-      // Build or reuse ImageData and write grayscale
-      let img = cachedImageDataRef.current
-      if (!img) {
-        img = new ImageData(hdr.width, hdr.height)
-        cachedImageDataRef.current = img
-      }
-      const u16 = new Uint16Array(buf)
-      const data = img.data
-      const clampMax = 5000
-      const scale = clampMax / 255
-      let j = 0
-      for (let i = 0; i < u16.length; i++) {
-        const v16 = u16[i]
-        const v = v16 > 0 ? Math.min(255, (v16 / scale) | 0) : 0
-        data[j++] = v
-        data[j++] = v
-        data[j++] = v
-        data[j++] = 255
-      }
-      offctx.putImageData(img, 0, 0)
+    const { width, height } = hdr.left_rgb
+    
+    // Calculate display size
+    const containerWidth = container.clientWidth
+    const displayWidth = containerWidth
+    const displayHeight = Math.round((height / width) * displayWidth)
+    
+    // Set canvas size
+    canvas.width = displayWidth
+    canvas.height = displayHeight
+    canvas.style.width = `${displayWidth}px`
+    canvas.style.height = `${displayHeight}px`
 
-      // Compute display size to fully fit width without cropping
-      const dpr = window.devicePixelRatio || 1
-      const containerWidth = container.clientWidth || hdr.width
-      const displayWidthCss = containerWidth
-      const displayHeightCss = Math.round((hdr.height / hdr.width) * displayWidthCss)
-      const displayWidthPx = Math.floor(displayWidthCss * dpr)
-      const displayHeightPx = Math.floor(displayHeightCss * dpr)
+    // Convert BGR8 buffer to RGB ImageData
+    const bgrData = new Uint8Array(buf)
+    const imgData = ctx.createImageData(width, height)
+    
+    // BGR8 to RGB conversion
+    for (let i = 0, j = 0; i < bgrData.length; i += 3, j += 4) {
+      imgData.data[j] = bgrData[i + 2]     // R (from B)
+      imgData.data[j + 1] = bgrData[i + 1] // G (from G) 
+      imgData.data[j + 2] = bgrData[i]     // B (from R)
+      imgData.data[j + 3] = 255            // Alpha
+    }
 
-      const ctx = displayCanvas.getContext('2d')
-      if (ctx) {
-        // Resize visible canvas backing store to match CSS size * DPR
-        if (displayCanvas.width !== displayWidthPx || displayCanvas.height !== displayHeightPx) {
-          displayCanvas.width = displayWidthPx
-          displayCanvas.height = displayHeightPx
-        }
-        // Set CSS size explicitly to prevent layout-induced cropping
-        displayCanvas.style.width = `${displayWidthCss}px`
-        displayCanvas.style.height = `${displayHeightCss}px`
+    // Create temporary canvas for scaling
+    const tempCanvas = document.createElement('canvas')
+    tempCanvas.width = width
+    tempCanvas.height = height
+    const tempCtx = tempCanvas.getContext('2d')
+    if (tempCtx) {
+      tempCtx.putImageData(imgData, 0, 0)
+      
+      // Draw scaled to display canvas
+      ctx.imageSmoothingEnabled = false
+      ctx.drawImage(tempCanvas, 0, 0, displayWidth, displayHeight)
+    }
+    console.log('renderRgb completed')
+  }
 
-        // Disable smoothing and draw scaled image to fill canvas (letterboxed by container if needed)
-        // @ts-expect-error vendor-specific flags may exist
-        ctx.imageSmoothingEnabled = false
-        // @ts-expect-error vendor-specific flags may exist
-        ctx.mozImageSmoothingEnabled = false
-        // @ts-expect-error vendor-specific flags may exist
-        ctx.webkitImageSmoothingEnabled = false
-        ctx.clearRect(0, 0, displayCanvas.width, displayCanvas.height)
-        ctx.drawImage(offscreen, 0, 0, displayCanvas.width, displayCanvas.height)
+  const renderDepth = () => {
+    const displayCanvas = depthCanvasRef.current
+    const container = depthContainerRef.current
+    const hdr = latestHeaderRef.current
+    const buf = depthBufferRef.current
+    
+    if (!displayCanvas || !container || !hdr || !buf) {
+      console.log('renderDepth early return:', { hasCanvas: !!displayCanvas, hasContainer: !!container, hasHeader: !!hdr, hasBuffer: !!buf })
+      return
+    }
+
+    console.log('renderDepth called with buffer size:', buf.byteLength)
+    // Use the proven working depth rendering logic
+    if (!offscreenCanvasRef.current) {
+      offscreenCanvasRef.current = document.createElement('canvas')
+    }
+    const offscreen = offscreenCanvasRef.current
+    if (!offscreenCtxRef.current) {
+      offscreenCtxRef.current = offscreen.getContext('2d')
+    }
+    const offctx = offscreenCtxRef.current
+    if (!offctx) return
+
+    // Ensure offscreen matches frame dims
+    if (!lastDrawnSizeRef.current || lastDrawnSizeRef.current.w !== hdr.depth.width || lastDrawnSizeRef.current.h !== hdr.depth.height) {
+      offscreen.width = hdr.depth.width
+      offscreen.height = hdr.depth.height
+      lastDrawnSizeRef.current = { w: hdr.depth.width, h: hdr.depth.height }
+      cachedImageDataRef.current = null
+    }
+
+    // Build or reuse ImageData and write grayscale
+    let img = cachedImageDataRef.current
+    if (!img) {
+      img = new ImageData(hdr.depth.width, hdr.depth.height)
+      cachedImageDataRef.current = img
+    }
+    
+    const u16 = new Uint16Array(buf)
+    const data = img.data
+    
+    // Dynamic depth range detection for better visualization
+    const validDepths = u16.filter(d => d > 0)
+    let minDepth = 0
+    let maxDepth = 0
+    
+    if (validDepths.length > 0) {
+      // Use loop-based approach to avoid stack overflow with large arrays
+      minDepth = validDepths[0]
+      maxDepth = validDepths[0]
+      for (let i = 1; i < validDepths.length; i++) {
+        const depth = validDepths[i]
+        if (depth < minDepth) minDepth = depth
+        if (depth > maxDepth) maxDepth = depth
       }
+      
+      // If range is too small, expand it for better contrast
+      if (maxDepth - minDepth < 100) {
+        const mid = (minDepth + maxDepth) / 2
+        minDepth = Math.max(0, mid - 500)
+        maxDepth = mid + 500
+      }
+    } else {
+      // Fallback values if no valid depth data
+      minDepth = 0
+      maxDepth = 5000
+    }
+    
+    // Ensure we have a valid range
+    if (maxDepth <= minDepth) {
+      maxDepth = minDepth + 1000
+    }
+    
+    const depthRange = maxDepth - minDepth
+    
+    console.log('Depth range:', { minDepth, maxDepth, depthRange, validCount: validDepths.length })
+    
+    let j = 0
+    for (let i = 0; i < u16.length; i++) {
+      const v16 = u16[i]
+      let gray = 0
+      
+      if (v16 > 0 && depthRange > 0) {
+        // Map depth to grayscale: closer = brighter, farther = darker
+        // Invert so closer objects are brighter (more intuitive)
+        gray = Math.floor(255 * (1 - (v16 - minDepth) / depthRange))
+        gray = Math.max(0, Math.min(255, gray))
+      }
+      
+      data[j++] = gray     // R
+      data[j++] = gray     // G  
+      data[j++] = gray     // B
+      data[j++] = 255      // Alpha
+    }
+    
+    offctx.putImageData(img, 0, 0)
+
+    // Compute display size to fully fit width without cropping
+    const dpr = window.devicePixelRatio || 1
+    const containerWidth = container.clientWidth || hdr.depth.width
+    const displayWidthCss = containerWidth
+    const displayHeightCss = Math.round((hdr.depth.height / hdr.depth.width) * displayWidthCss)
+    const displayWidthPx = Math.floor(displayWidthCss * dpr)
+    const displayHeightPx = Math.floor(displayHeightCss * dpr)
+
+    const ctx = displayCanvas.getContext('2d')
+    if (ctx) {
+      // Resize visible canvas backing store to match CSS size * DPR
+      if (displayCanvas.width !== displayWidthPx || displayCanvas.height !== displayHeightPx) {
+        displayCanvas.width = displayWidthPx
+        displayCanvas.height = displayHeightPx
+      }
+      // Set CSS size explicitly to prevent layout-induced cropping
+      displayCanvas.style.width = `${displayWidthCss}px`
+      displayCanvas.style.height = `${displayHeightCss}px`
+
+      // Disable smoothing and draw scaled image to fill canvas (letterboxed by container if needed)
+      ctx.imageSmoothingEnabled = false
+      ctx.clearRect(0, 0, displayCanvas.width, displayCanvas.height)
+      ctx.drawImage(offscreen, 0, 0, displayCanvas.width, displayCanvas.height)
+    }
+    console.log('renderDepth completed')
+  }
+
+  const renderLoop = () => {
+    // Render both views if we have data
+    if (latestHeaderRef.current) {
+      console.log('Render loop - rendering both views, header:', latestHeaderRef.current)
+      renderRgb()
+      renderDepth()
+    } else {
+      console.log('Render loop - no header yet')
     }
     rafRef.current = window.requestAnimationFrame(renderLoop)
   }
@@ -172,16 +295,43 @@ export function DepthViewer() {
         if (typeof ev.data === 'string') {
           try {
             const hdr = JSON.parse(ev.data) as DepthHeader
+            console.log('Received header:', hdr)
             setHeader(hdr)
             latestHeaderRef.current = hdr
-            expectingBinaryRef.current = true
-            updateFps(hdr.ts_ms)
+            updateFps(hdr.timestamp)
+            
+            // Reset buffers for new frame
+            rgbBufferRef.current = null
+            depthBufferRef.current = null
+            messageCounterRef.current = 0 // Reset message counter
+            console.log('Reset buffers and message counter for new frame')
           } catch (e) {
-            // ignore malformed header
+            console.error('Failed to parse header:', e)
           }
-        } else if (expectingBinaryRef.current) {
-          latestBufferRef.current = ev.data as ArrayBuffer
-          expectingBinaryRef.current = false
+        } else if (ev.data instanceof ArrayBuffer) {
+          console.log('Received binary data:', ev.data.byteLength, 'bytes')
+          
+          // Handle the 3-message sequence: left RGB, right RGB, depth
+          messageCounterRef.current++
+          if (messageCounterRef.current === 1) {
+            // First binary message = Left RGB
+            console.log('Storing first message as RGB data')
+            rgbBufferRef.current = ev.data
+          } else if (messageCounterRef.current === 2) {
+            // Second message = Right RGB (skip it)
+            console.log('Skipping second message (right RGB)')
+            // Don't store it, just mark that we've seen it
+          } else if (messageCounterRef.current === 3) {
+            // Third message = Depth data
+            console.log('Storing third message as depth data')
+            depthBufferRef.current = ev.data
+          } else {
+            console.log('Unexpected message sequence, resetting')
+            // Reset for next frame
+            rgbBufferRef.current = null
+            depthBufferRef.current = null
+            messageCounterRef.current = 0
+          }
         }
       }
     } catch (e: any) {
@@ -213,7 +363,7 @@ export function DepthViewer() {
         <CardHeader>
           <CardTitle>Depth Viewer</CardTitle>
           <CardDescription>
-            Connect to a Valthera Camera depth stream via WebSocket
+            Connect to a Valthera Camera RGB + depth stream via WebSocket
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -264,7 +414,11 @@ export function DepthViewer() {
                 )}
               </span>
               {header ? (
-                <span>Frame: {header.width}×{header.height} • fmt: {header.fmt} • scale: {header.depth_scale_m ?? 'n/a'}</span>
+                <span>
+                  RGB: {header.left_rgb.width}×{header.left_rgb.height} • 
+                  Depth: {header.depth.width}×{header.depth.height} • 
+                  Scale: {header.depth.scale_m}m
+                </span>
               ) : (
                 <span>Waiting for header…</span>
               )}
@@ -272,12 +426,39 @@ export function DepthViewer() {
             <div className="text-sm">{fps ? `${fps.toFixed(1)} fps` : ''}</div>
           </div>
 
-          <div ref={containerRef} className="w-full overflow-auto">
-            <canvas
-              ref={canvasRef}
-              className="border rounded-md bg-black"
-              style={{ display: 'block', imageRendering: 'pixelated' as any }}
-            />
+          {/* Camera Views - Side by Side */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* RGB View */}
+            <Card className="border">
+              <CardHeader>
+                <CardTitle className="text-sm">RGB Camera</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div ref={rgbContainerRef} className="w-full overflow-auto">
+                  <canvas
+                    ref={rgbCanvasRef}
+                    className="border rounded-md bg-black w-full"
+                    style={{ display: 'block', imageRendering: 'pixelated' as any }}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Depth View */}
+            <Card className="border">
+              <CardHeader>
+                <CardTitle className="text-sm">Depth Data</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div ref={depthContainerRef} className="w-full overflow-auto">
+                  <canvas
+                    ref={depthCanvasRef}
+                    className="border rounded-md bg-black w-full"
+                    style={{ display: 'block', imageRendering: 'pixelated' as any }}
+                  />
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </CardContent>
       </Card>
