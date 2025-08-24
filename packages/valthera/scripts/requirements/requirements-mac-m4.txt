@@ -1,0 +1,29 @@
+# Requirements for Mac M4 with MPS acceleration
+# Install with: pip install -r requirements-mac-m4.txt
+
+# PyTorch with MPS support (Mac M1/M2/M3/M4)
+torch>=2.1.0
+torchvision>=0.16.0
+torchaudio>=2.1.0
+
+# V-JEPA2 and video processing
+transformers>=4.35.0
+opencv-python>=4.8.0
+pillow>=10.0.0
+
+# Scientific computing
+numpy>=1.24.0
+scipy>=1.11.0
+
+# Data handling
+pandas>=2.0.0
+h5py>=3.8.0
+
+# Optional: Direct V-JEPA2 from Meta (if available)
+# git+https://github.com/facebookresearch/jepa.git
+
+# Development and testing
+pytest>=7.4.0
+pytest-cov>=4.1.0
+black>=23.0.0
+flake8>=6.0.0

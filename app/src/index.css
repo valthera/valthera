@@ -38,25 +38,28 @@ html, body {
 }
 
 .dark {
-  --background: #0f172a;
-  --foreground: #f8fafc;
-  --muted: #475569;
-  --muted-foreground: #94a3b8;
-  --border: #334155;
-  --input: #334155;
-  --ring: #f8fafc;
-  --primary: #f8fafc;
-  --primary-foreground: #0f172a;
-  --secondary: #1e293b;
-  --secondary-foreground: #e2e8f0;
-  --accent: #1e293b;
-  --accent-foreground: #e2e8f0;
-  --destructive: #7f1d1d;
-  --destructive-foreground: #f8fafc;
-  --card: #0f172a;
-  --card-foreground: #f8fafc;
-  --popover: #0f172a;
-  --popover-foreground: #f8fafc;
+  /* Subtle dark surface and higher contrast text */
+  --background: #0b0d12;           /* app background */
+  --foreground: #e5e7eb;           /* primary text */
+  --muted: #1b2230;                /* muted surfaces */
+  --muted-foreground: #9ca3af;     /* muted text */
+  --border: #2b3648;               /* clearer borders */
+  --input: #374151;                /* inputs */
+  --ring: #93c5fd;                 /* focus ring */
+  /* Primary accent for user bubbles/buttons */
+  --primary: #2563eb;              /* blue-600 */
+  --primary-foreground: #ffffff;   /* on-primary */
+  /* Elevated surfaces */
+  --secondary: #121826;            /* secondary panel */
+  --secondary-foreground: #e5e7eb;
+  --accent: #1a2232;               /* assistant bubble */
+  --accent-foreground: #e5e7eb;
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+  --card: #111827;                 /* cards */
+  --card-foreground: #e5e7eb;
+  --popover: #111827;
+  --popover-foreground: #e5e7eb;
 }
 
 /* Invert logo color in dark mode */

@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "valthera-camera"
+version = "0.1.0"
+description = "Jetson camera server with RealSense depth streaming"
+authors = ["Valthera"]
+readme = "README.md"
+package-mode = false
+
+[tool.poetry.dependencies]
+python = ">=3.10,<3.12"
+fastapi = "^0.115.0"
+uvicorn = {extras = ["standard"], version = "^0.30.6"}
+numpy = "^1.26.4"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+

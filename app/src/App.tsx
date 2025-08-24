@@ -19,6 +19,7 @@ import { TrainingOverviewPage } from './pages/TrainingOverviewPage'
 import { EndpointsOverviewPage } from './pages/EndpointsOverviewPage'
 import { ApiKeysPage } from './pages/ApiKeysPage'
 import { SettingsPageNew } from './pages/SettingsPageNew'
+import DepthViewer from './pages/DepthViewer'
 import { DataSourcesPage } from './pages/DataSourcesPage'
 import { DataSourceFolderPage } from './pages/DataSourceFolderPage'
 import { ConceptDetailPage } from './pages/ConceptDetailPage'
@@ -112,6 +113,17 @@ function App() {
               />
 
               {/* Data Sources */}
+              <Route
+                path="/depth"
+                element={
+                  <ProtectedRoute>
+                    <AppShell>
+                      <DepthViewer />
+                    </AppShell>
+                  </ProtectedRoute>
+                }
+              />
+
               <Route
                 path="/data-sources"
                 element={

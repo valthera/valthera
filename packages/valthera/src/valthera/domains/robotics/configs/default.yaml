@@ -1,0 +1,107 @@
+# Default configuration for robotics domain
+domain: robotics
+
+# Dataset configuration
+dataset: droid
+dataset_config:
+  observation_keys: ["rgb", "depth", "joint_pos"]
+  action_keys: ["delta_pose"]
+
+# Model configuration
+model: gru
+model_config:
+  hidden_size: 256
+  num_layers: 2
+  dropout: 0.1
+  bidirectional: false
+
+# Observation processors
+observations: ["vision", "proprioception"]
+observation_configs:
+  vision:
+    image_size: [64, 64]
+    normalize: true
+    use_depth: true
+    feature_dim: 512
+  proprioception:
+    feature_dim: 64
+    normalize: true
+    joint_names: []
+
+# Action processor
+actions: ["delta_pose"]
+action_configs:
+  delta_pose:
+    action_dim: 7  # 3 pos + 4 quat
+    normalize: true
+    clip_actions: true
+    clip_range: [-1.0, 1.0]
+  joint_control:
+    num_joints: 7
+    normalize: true
+    clip_actions: true
+    joint_limits: [-3.14, 3.14]
+
+# Training configuration
+training:
+  batch_size: 32
+  learning_rate: 0.0001
+  epochs: 100
+  optimizer: "adam"
+  scheduler: "cosine"
+  weight_decay: 0.0001
+  gradient_clip: 1.0
+  
+  # Loss configuration
+  loss:
+    type: "mse"
+    reduction: "mean"
+  
+  # Validation
+  val_split: 0.2
+  early_stopping: true
+  patience: 10
+  
+  # Logging
+  log_interval: 100
+  save_interval: 1000
+  tensorboard: true
+  wandb: false
+
+# Data augmentation
+augmentation:
+  enabled: false
+  random_crop: false
+  random_rotation: false
+  color_jitter: false
+  noise: false
+
+# Model architecture
+architecture:
+  observation_encoder:
+    type: "mlp"
+    hidden_dims: [512, 256, 128]
+    activation: "relu"
+    dropout: 0.1
+  
+  action_decoder:
+    type: "mlp"
+    hidden_dims: [128, 256, 512]
+    activation: "relu"
+    dropout: 0.1
+    output_activation: "tanh"
+
+# Deployment configuration
+deployment:
+  model_format: "torchscript"
+  quantization: false
+  batch_inference: true
+  max_batch_size: 64
+  
+  # Performance
+  num_workers: 4
+  pin_memory: true
+  
+  # Monitoring
+  enable_monitoring: true
+  metrics_interval: 1000
