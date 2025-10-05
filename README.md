@@ -137,6 +137,37 @@ After setup, you can log in with:
 - **Email**: test@valthera.com
 - **Password**: TestPass123!
 
+### Monitoring SQS Queues
+
+The local SQS service (ElasticMQ) runs on port 9324. You can monitor queues using these methods:
+
+#### Using AWS CLI
+```bash
+# List all queues
+aws --endpoint-url http://localhost:9324 sqs list-queues | jq
+
+# Check queue message counts
+aws --endpoint-url http://localhost:9324 sqs get-queue-attributes \
+  --queue-url "http://localhost:9324/123456789012/video-processor-queue" \
+  --attribute-names ApproximateNumberOfMessages,ApproximateNumberOfMessagesNotVisible,ApproximateAgeOfOldestMessage
+```
+
+#### Using SQS Admin Web UI
+The startup script automatically installs `sqs-admin`, which provides a web interface:
+
+```bash
+# Start the SQS Admin web interface
+sqs-admin --endpoint http://localhost:9324
+```
+
+Then open http://localhost:3001 in your browser to view and manage queues.
+
+#### Quick Status Check
+```bash
+# Watch queue status in real-time
+watch -n 2 'aws --endpoint-url http://localhost:9324 sqs list-queues | jq -r ".QueueUrls[]" | while read url; do name=$(basename "$url"); count=$(aws --endpoint-url http://localhost:9324 sqs get-queue-attributes --queue-url "$url" --attribute-names ApproximateNumberOfMessages --query "Attributes.ApproximateNumberOfMessages" --output text); echo "$name: $count messages"; done'
+```
+
 ### Troubleshooting
 
 If you encounter issues:

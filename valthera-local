@@ -606,6 +606,26 @@ setup_sqs_queues() {
     create_queue_if_not_exists "valthera-dev-video-processor-dlq"
 }
 
+# Ensure sqs-admin is installed
+ensure_sqs_admin() {
+    if ! command -v sqs-admin &> /dev/null; then
+        print_info "sqs-admin not found, installing..."
+        if command -v npm &> /dev/null; then
+            npm install -g sqs-admin
+            if [ $? -eq 0 ]; then
+                print_success "sqs-admin installed successfully"
+            else
+                print_warning "Failed to install sqs-admin. You can install it manually with: npm install -g sqs-admin"
+            fi
+        else
+            print_warning "npm not found. Please install npm to use sqs-admin web interface"
+            print_info "You can still monitor SQS using AWS CLI"
+        fi
+    else
+        print_success "sqs-admin is already installed"
+    fi
+}
+
 # Setup Cognito
 setup_cognito() {
     print_subheader "Setting up Cognito (Local)"
@@ -734,6 +754,7 @@ cmd_start() {
     setup_dynamodb_tables
     setup_s3_buckets
     setup_sqs_queues
+    ensure_sqs_admin
     setup_datasources
     
     # Setup Cognito if container is running
@@ -797,6 +818,7 @@ cmd_start_force() {
     setup_dynamodb_tables
     setup_s3_buckets
     setup_sqs_queues
+    ensure_sqs_admin
     setup_datasources
     
     # Setup Cognito if container is running
@@ -1350,6 +1372,7 @@ cmd_rebuild() {
     setup_dynamodb_tables
     setup_s3_buckets
     setup_sqs_queues
+    ensure_sqs_admin
     setup_datasources
     
     # Step 5: Setup Cognito
