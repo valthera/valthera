@@ -32,12 +32,11 @@ export function DepthViewer() {
   const [fps, setFps] = useState<number>(0)
   const [lastTimestampMs, setLastTimestampMs] = useState<number | null>(null)
   const [lastMessageAt, setLastMessageAt] = useState<number>(0)
+  const [currentView, setCurrentView] = useState<'color' | 'depth'>('color')
 
-  // Separate refs for RGB and depth
-  const rgbContainerRef = useRef<HTMLDivElement | null>(null)
-  const depthContainerRef = useRef<HTMLDivElement | null>(null)
-  const rgbCanvasRef = useRef<HTMLCanvasElement | null>(null)
-  const depthCanvasRef = useRef<HTMLCanvasElement | null>(null)
+  // Single refs for the current view (since we only show one at a time)
+  const containerRef = useRef<HTMLDivElement | null>(null)
+  const canvasRef = useRef<HTMLCanvasElement | null>(null)
   
   const websocketRef = useRef<WebSocket | null>(null)
   const latestHeaderRef = useRef<DepthHeader | null>(null)
@@ -73,25 +72,31 @@ export function DepthViewer() {
   }
 
   const renderRgb = () => {
-    const canvas = rgbCanvasRef.current
-    const container = rgbContainerRef.current
+    const canvas = canvasRef.current
+    const container = containerRef.current
     const hdr = latestHeaderRef.current
     const buf = rgbBufferRef.current
     
     if (!canvas || !container || !hdr || !buf) {
-      console.log('renderRgb early return:', { hasCanvas: !!canvas, hasContainer: !!container, hasHeader: !!hdr, hasBuffer: !!buf })
+      console.log('renderRgb early return:', { hasCanvas: !!canvas, hasContainer: !!container, hasHeader: !!hdr, hasBuffer: !!buf, currentView })
       return
     }
+    
+    console.log('renderRgb: Using RGB buffer, size:', buf.byteLength)
 
     console.log('renderRgb called with buffer size:', buf.byteLength)
     const ctx = canvas.getContext('2d')
-    if (!ctx) return
+    if (!ctx) {
+      console.error('Failed to get 2D context for RGB canvas')
+      return
+    }
 
-    const { width, height } = hdr.left_rgb
+    const { width, height, format } = hdr.left_rgb
+    console.log('RGB dimensions:', width, 'x', height, 'format:', format)
     
-    // Calculate display size
-    const containerWidth = container.clientWidth
-    const displayWidth = containerWidth
+    // Calculate display size - ensure container has width
+    const containerWidth = container.clientWidth || 400 // fallback width
+    const displayWidth = Math.max(containerWidth, 200) // minimum width
     const displayHeight = Math.round((height / width) * displayWidth)
     
     // Set canvas size
@@ -100,7 +105,30 @@ export function DepthViewer() {
     canvas.style.width = `${displayWidth}px`
     canvas.style.height = `${displayHeight}px`
 
-    // Convert BGR8 buffer to RGB ImageData
+    // Check if RGB data is compressed (JPEG format)
+    if (format === 'jpeg' || hdr.compressed) {
+      console.log('Rendering compressed RGB data as JPEG')
+      // Use ImageBitmap for compressed RGB data (like the server viewer)
+      const blob = new Blob([buf], { type: 'image/jpeg' })
+      createImageBitmap(blob).then(bitmap => {
+        const ctx = canvas.getContext('2d')
+        if (ctx) {
+          ctx.imageSmoothingEnabled = false
+          ctx.clearRect(0, 0, displayWidth, displayHeight)
+          ctx.drawImage(bitmap, 0, 0, displayWidth, displayHeight)
+          bitmap.close()
+        }
+        console.log('renderRgb completed (compressed) - canvas size:', displayWidth, 'x', displayHeight)
+      }).catch(err => {
+        console.error('JPEG RGB rendering failed:', err)
+        // Fallback to raw data processing
+        renderRgbRaw(buf, width, height, displayWidth, displayHeight)
+      })
+      return
+    }
+
+    // Handle raw RGB data
+    console.log('Rendering raw RGB data')
     const bgrData = new Uint8Array(buf)
     const imgData = ctx.createImageData(width, height)
     
@@ -122,21 +150,59 @@ export function DepthViewer() {
       
       // Draw scaled to display canvas
       ctx.imageSmoothingEnabled = false
+      ctx.clearRect(0, 0, displayWidth, displayHeight)
       ctx.drawImage(tempCanvas, 0, 0, displayWidth, displayHeight)
     }
-    console.log('renderRgb completed')
+    console.log('renderRgb completed - canvas size:', displayWidth, 'x', displayHeight)
+  }
+
+  const renderRgbRaw = (buf: ArrayBuffer, width: number, height: number, displayWidth: number, displayHeight: number) => {
+    console.log('Rendering raw RGB data as fallback')
+    const canvas = canvasRef.current
+    if (!canvas) return
+
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+
+    const bgrData = new Uint8Array(buf)
+    const imgData = ctx.createImageData(width, height)
+    
+    // BGR8 to RGB conversion
+    for (let i = 0, j = 0; i < bgrData.length; i += 3, j += 4) {
+      imgData.data[j] = bgrData[i + 2]     // R (from B)
+      imgData.data[j + 1] = bgrData[i + 1] // G (from G) 
+      imgData.data[j + 2] = bgrData[i]     // B (from R)
+      imgData.data[j + 3] = 255            // Alpha
+    }
+
+    // Create temporary canvas for scaling
+    const tempCanvas = document.createElement('canvas')
+    tempCanvas.width = width
+    tempCanvas.height = height
+    const tempCtx = tempCanvas.getContext('2d')
+    if (tempCtx) {
+      tempCtx.putImageData(imgData, 0, 0)
+      
+      // Draw scaled to display canvas
+      ctx.imageSmoothingEnabled = false
+      ctx.clearRect(0, 0, displayWidth, displayHeight)
+      ctx.drawImage(tempCanvas, 0, 0, displayWidth, displayHeight)
+    }
+    console.log('renderRgbRaw completed - canvas size:', displayWidth, 'x', displayHeight)
   }
 
   const renderDepth = () => {
-    const displayCanvas = depthCanvasRef.current
-    const container = depthContainerRef.current
+    const displayCanvas = canvasRef.current
+    const container = containerRef.current
     const hdr = latestHeaderRef.current
     const buf = depthBufferRef.current
     
     if (!displayCanvas || !container || !hdr || !buf) {
-      console.log('renderDepth early return:', { hasCanvas: !!displayCanvas, hasContainer: !!container, hasHeader: !!hdr, hasBuffer: !!buf })
+      console.log('renderDepth early return:', { hasCanvas: !!displayCanvas, hasContainer: !!container, hasHeader: !!hdr, hasBuffer: !!buf, currentView })
       return
     }
+    
+    console.log('renderDepth: Using depth buffer, size:', buf.byteLength)
 
     console.log('renderDepth called with buffer size:', buf.byteLength)
     // Use the proven working depth rendering logic
@@ -148,7 +214,12 @@ export function DepthViewer() {
       offscreenCtxRef.current = offscreen.getContext('2d')
     }
     const offctx = offscreenCtxRef.current
-    if (!offctx) return
+    if (!offctx) {
+      console.error('Failed to get 2D context for depth offscreen canvas')
+      return
+    }
+
+    console.log('Depth dimensions:', hdr.depth.width, 'x', hdr.depth.height, 'format:', hdr.depth.format, 'compressed:', hdr.compressed)
 
     // Ensure offscreen matches frame dims
     if (!lastDrawnSizeRef.current || lastDrawnSizeRef.current.w !== hdr.depth.width || lastDrawnSizeRef.current.h !== hdr.depth.height) {
@@ -165,16 +236,168 @@ export function DepthViewer() {
       cachedImageDataRef.current = img
     }
     
+    // Check if depth data is compressed (PNG format) - but now we send raw data
+    if (hdr.depth.format === 'png' || hdr.compressed) {
+      console.log('Rendering raw depth data (server now sends raw 16-bit data), buffer size:', buf.byteLength)
+      // Server now sends raw 16-bit depth data instead of PNG
+      // Process it as raw data for analysis
+      renderDepthRaw(buf, hdr.depth.width, hdr.depth.height)
+      return
+    }
+
+    // Handle raw depth data - match server exactly
+    const depth = new Uint16Array(buf)
+    const depthImg = ctx.createImageData(hdr.depth.width, hdr.depth.height)
+    
+    // Enhanced depth visualization for room-scale distances
+    const maxDepth = 4000; // 4 meters in mm (covers 10ft+ room)
+    const minDepth = 50;   // 5cm minimum depth (very close range)
+    
+    let minVal = 65535;
+    let maxVal = 0;
+    
+    // Find actual min/max values for better contrast
+    for (let i = 0; i < depth.length; i++) {
+      if (depth[i] > 0 && depth[i] < 65535) {
+        minVal = Math.min(minVal, depth[i]);
+        maxVal = Math.max(maxVal, depth[i]);
+      }
+    }
+    
+    // Use actual range with aggressive contrast enhancement
+    let actualMin = Math.max(minDepth, minVal);
+    let actualMax = Math.min(maxDepth, maxVal);
+    
+    // Force a reasonable range for better contrast
+    let range = actualMax - actualMin;
+    if (range < 2000) {
+      // If range is too small, force a wider range for better visibility
+      const mid = (actualMin + actualMax) / 2;
+      actualMin = Math.max(50, mid - 1500);
+      actualMax = Math.min(4000, mid + 1500);
+      range = actualMax - actualMin;
+      console.log(`Forced depth range for better contrast: ${actualMin}mm - ${actualMax}mm`);
+    }
+    
+    // Additional contrast boost - use only the middle 80% of the range for better visibility
+    const contrastBoost = 0.2; // Use 20% padding on each end
+    const adjustedMin = actualMin + (range * contrastBoost);
+    const adjustedMax = actualMax - (range * contrastBoost);
+    const adjustedRange = adjustedMax - adjustedMin;
+    
+    console.log(`🔄 Final depth range: ${adjustedMin}mm - ${adjustedMax}mm (${Math.round(adjustedMin/10)}cm - ${Math.round(adjustedMax/10)}cm)`);
+    
+    for (let i = 0, j = 0; i < depth.length; i++, j += 4) {
+      const v16 = depth[i];
+      
+      if (v16 === 0 || v16 >= 65535) {
+        // Invalid depth - show as black
+        depthImg.data[j] = 0;
+        depthImg.data[j+1] = 0;
+        depthImg.data[j+2] = 0;
+        depthImg.data[j+3] = 255;
+      } else {
+        // Map depth to grayscale: closer = white, farther = black
+        // Closer objects have smaller depth values, farther objects have larger depth values
+        const normalized = Math.max(0, Math.min(1, (v16 - adjustedMin) / adjustedRange));
+        
+        // Apply strong contrast curve for better visibility
+        const gamma = 0.4; // Lower gamma = much brighter mid-tones
+        const contrastNormalized = Math.pow(normalized, gamma);
+        
+        // INVERT: closer objects (small depth values) should be white (high grayscale)
+        // farther objects (large depth values) should be black (low grayscale)
+        const grayscale = Math.floor((1 - contrastNormalized) * 255);
+        
+        // Apply additional contrast boost
+        const boostedGrayscale = Math.min(255, Math.max(0, grayscale * 1.5));
+        
+        // Set all RGB channels to the same grayscale value
+        depthImg.data[j] = boostedGrayscale;     // R
+        depthImg.data[j+1] = boostedGrayscale;   // G
+        depthImg.data[j+2] = boostedGrayscale;   // B
+        depthImg.data[j+3] = 255;                // A
+      }
+    }
+    
+    // Calculate average depth in center square and highlight it
+    const centerX = Math.floor(hdr.depth.width / 2)
+    const centerY = Math.floor(hdr.depth.height / 2)
+    const squareSize = 40 // 40x40 pixel square in center
+    const halfSquare = Math.floor(squareSize / 2)
+    
+    let centerDepthSum = 0
+    let centerDepthCount = 0
+    const centerDepths = []
+    
+    // Calculate average depth in center square
+    for (let y = centerY - halfSquare; y < centerY + halfSquare; y++) {
+      for (let x = centerX - halfSquare; x < centerX + halfSquare; x++) {
+        if (x >= 0 && x < hdr.depth.width && y >= 0 && y < hdr.depth.height) {
+          const idx = y * hdr.depth.width + x
+          const depthValue = depth[idx]
+          if (depthValue > 0 && depthValue < 65535) {
+            centerDepths.push(depthValue)
+            centerDepthSum += depthValue
+            centerDepthCount++
+          }
+        }
+      }
+    }
+    
+    const averageDepth = centerDepthCount > 0 ? centerDepthSum / centerDepthCount : 0
+    const averageDepthCm = Math.round(averageDepth * hdr.depth.scale_m * 100) // Convert to cm
+    console.log(`🎯 Center square (${squareSize}x${squareSize}) average depth: ${averageDepth}mm (${averageDepthCm}cm)`)
+    console.log(`📊 Center depth range: ${Math.min(...centerDepths)}mm - ${Math.max(...centerDepths)}mm`)
+    
+    // Highlight center square in red
+    for (let y = centerY - halfSquare; y < centerY + halfSquare; y++) {
+      for (let x = centerX - halfSquare; x < centerX + halfSquare; x++) {
+        if (x >= 0 && x < hdr.depth.width && y >= 0 && y < hdr.depth.height) {
+          const idx = (y * hdr.depth.width + x) * 4
+          // Set red border (keep some original depth info)
+          depthImg.data[idx] = 255     // R = red
+          depthImg.data[idx + 1] = 0   // G = 0
+          depthImg.data[idx + 2] = 0   // B = 0
+          depthImg.data[idx + 3] = 255 // A = opaque
+        }
+      }
+    }
+
+    // Put image data directly to display canvas (exactly like server)
+    const ctx = displayCanvas.getContext('2d')
+    if (ctx) {
+      // Set canvas size to match image dimensions (exactly like server)
+      displayCanvas.width = hdr.depth.width
+      displayCanvas.height = hdr.depth.height
+      displayCanvas.style.width = `${hdr.depth.width}px`
+      displayCanvas.style.height = `${hdr.depth.height}px`
+
+      // Put image data directly (exactly like server)
+      ctx.putImageData(depthImg, 0, 0)
+    }
+    console.log('renderDepth completed - canvas size:', hdr.depth.width, 'x', hdr.depth.height)
+  }
+
+  const renderDepthRaw = (buf: ArrayBuffer, width: number, height: number) => {
+    console.log('Rendering raw depth data as fallback')
+    const displayCanvas = canvasRef.current
+    const container = containerRef.current
+    
+    if (!displayCanvas || !container) return
+
     const u16 = new Uint16Array(buf)
+    const img = new ImageData(width, height)
     const data = img.data
     
     // Dynamic depth range detection for better visualization
-    const validDepths = u16.filter(d => d > 0)
+    const validDepths = u16.filter(d => d > 0 && d < 65535)
     let minDepth = 0
     let maxDepth = 0
     
+    console.log('Raw depth data - valid pixels:', validDepths.length, 'out of', u16.length)
+    
     if (validDepths.length > 0) {
-      // Use loop-based approach to avoid stack overflow with large arrays
       minDepth = validDepths[0]
       maxDepth = validDepths[0]
       for (let i = 1; i < validDepths.length; i++) {
@@ -183,11 +406,11 @@ export function DepthViewer() {
         if (depth > maxDepth) maxDepth = depth
       }
       
-      // If range is too small, expand it for better contrast
+      // Ensure we have a reasonable range
       if (maxDepth - minDepth < 100) {
         const mid = (minDepth + maxDepth) / 2
-        minDepth = Math.max(0, mid - 500)
-        maxDepth = mid + 500
+        minDepth = Math.max(0, mid - 1000)
+        maxDepth = mid + 1000
       }
     } else {
       // Fallback values if no valid depth data
@@ -195,70 +418,101 @@ export function DepthViewer() {
       maxDepth = 5000
     }
     
-    // Ensure we have a valid range
     if (maxDepth <= minDepth) {
-      maxDepth = minDepth + 1000
+      maxDepth = minDepth + 2000
     }
     
     const depthRange = maxDepth - minDepth
-    
-    console.log('Depth range:', { minDepth, maxDepth, depthRange, validCount: validDepths.length })
+    console.log('Depth range for visualization:', minDepth, 'to', maxDepth, 'range:', depthRange)
     
     let j = 0
     for (let i = 0; i < u16.length; i++) {
       const v16 = u16[i]
-      let gray = 0
       
-      if (v16 > 0 && depthRange > 0) {
-        // Map depth to grayscale: closer = brighter, farther = darker
-        // Invert so closer objects are brighter (more intuitive)
-        gray = Math.floor(255 * (1 - (v16 - minDepth) / depthRange))
-        gray = Math.max(0, Math.min(255, gray))
+      if (v16 === 0 || v16 >= 65535) {
+        // Invalid depth - show as black
+        data[j++] = 0
+        data[j++] = 0
+        data[j++] = 0
+        data[j++] = 255
+      } else if (depthRange > 0) {
+        // Map depth to color with better contrast
+        const normalized = Math.max(0, Math.min(1, (v16 - minDepth) / depthRange))
+        const intensity = Math.floor(normalized * 255)
+        
+        // Use a color map: blue (close) -> green -> yellow -> red (far)
+        if (normalized < 0.25) {
+          // Blue to cyan
+          data[j++] = 0
+          data[j++] = intensity
+          data[j++] = 255
+        } else if (normalized < 0.5) {
+          // Cyan to green
+          data[j++] = 0
+          data[j++] = 255
+          data[j++] = 255 - intensity
+        } else if (normalized < 0.75) {
+          // Green to yellow
+          data[j++] = intensity
+          data[j++] = 255
+          data[j++] = 0
+        } else {
+          // Yellow to red
+          data[j++] = 255
+          data[j++] = 255 - intensity
+          data[j++] = 0
+        }
+        data[j++] = 255
+      } else {
+        // No valid range - show as gray
+        data[j++] = 128
+        data[j++] = 128
+        data[j++] = 128
+        data[j++] = 255
       }
-      
-      data[j++] = gray     // R
-      data[j++] = gray     // G  
-      data[j++] = gray     // B
-      data[j++] = 255      // Alpha
     }
     
-    offctx.putImageData(img, 0, 0)
-
-    // Compute display size to fully fit width without cropping
-    const dpr = window.devicePixelRatio || 1
-    const containerWidth = container.clientWidth || hdr.depth.width
-    const displayWidthCss = containerWidth
-    const displayHeightCss = Math.round((hdr.depth.height / hdr.depth.width) * displayWidthCss)
-    const displayWidthPx = Math.floor(displayWidthCss * dpr)
-    const displayHeightPx = Math.floor(displayHeightCss * dpr)
+    // Calculate display size
+    const containerWidth = container.clientWidth || 400
+    const displayWidthCss = Math.max(containerWidth, 200)
+    const displayHeightCss = Math.round((height / width) * displayWidthCss)
 
     const ctx = displayCanvas.getContext('2d')
     if (ctx) {
-      // Resize visible canvas backing store to match CSS size * DPR
-      if (displayCanvas.width !== displayWidthPx || displayCanvas.height !== displayHeightPx) {
-        displayCanvas.width = displayWidthPx
-        displayCanvas.height = displayHeightPx
-      }
-      // Set CSS size explicitly to prevent layout-induced cropping
+      // Set canvas size
+      displayCanvas.width = displayWidthCss
+      displayCanvas.height = displayHeightCss
       displayCanvas.style.width = `${displayWidthCss}px`
       displayCanvas.style.height = `${displayHeightCss}px`
 
-      // Disable smoothing and draw scaled image to fill canvas (letterboxed by container if needed)
-      ctx.imageSmoothingEnabled = false
-      ctx.clearRect(0, 0, displayCanvas.width, displayCanvas.height)
-      ctx.drawImage(offscreen, 0, 0, displayCanvas.width, displayCanvas.height)
+      // Create temporary canvas for scaling
+      const tempCanvas = document.createElement('canvas')
+      tempCanvas.width = width
+      tempCanvas.height = height
+      const tempCtx = tempCanvas.getContext('2d')
+      if (tempCtx) {
+        tempCtx.putImageData(img, 0, 0)
+        
+        // Draw scaled to display canvas
+        ctx.imageSmoothingEnabled = false
+        ctx.clearRect(0, 0, displayWidthCss, displayHeightCss)
+        ctx.drawImage(tempCanvas, 0, 0, displayWidthCss, displayHeightCss)
+      }
     }
-    console.log('renderDepth completed')
+    console.log('renderDepthRaw completed - canvas size:', displayWidthCss, 'x', displayHeightCss)
   }
 
   const renderLoop = () => {
-    // Render both views if we have data
-    if (latestHeaderRef.current) {
-      console.log('Render loop - rendering both views, header:', latestHeaderRef.current)
-      renderRgb()
-      renderDepth()
+    // The render loop is now mainly for cleanup and monitoring
+    // Actual rendering happens immediately when data arrives
+    if (latestHeaderRef.current && rgbBufferRef.current && depthBufferRef.current) {
+      console.log('Render loop - data available, but rendering happens on data arrival')
     } else {
-      console.log('Render loop - no header yet')
+      console.log('Render loop - waiting for data:', { 
+        hasHeader: !!latestHeaderRef.current, 
+        hasRgb: !!rgbBufferRef.current, 
+        hasDepth: !!depthBufferRef.current 
+      })
     }
     rafRef.current = window.requestAnimationFrame(renderLoop)
   }
@@ -300,11 +554,9 @@ export function DepthViewer() {
             latestHeaderRef.current = hdr
             updateFps(hdr.timestamp)
             
-            // Reset buffers for new frame
-            rgbBufferRef.current = null
-            depthBufferRef.current = null
-            messageCounterRef.current = 0 // Reset message counter
-            console.log('Reset buffers and message counter for new frame')
+            // Reset message counter for new frame
+            messageCounterRef.current = 0
+            console.log('New frame header received, reset message counter')
           } catch (e) {
             console.error('Failed to parse header:', e)
           }
@@ -325,6 +577,21 @@ export function DepthViewer() {
             // Third message = Depth data
             console.log('Storing third message as depth data')
             depthBufferRef.current = ev.data
+            console.log('Complete frame received - RGB and depth data ready')
+            console.log('Buffer states:', {
+              rgb: !!rgbBufferRef.current,
+              depth: !!depthBufferRef.current,
+              rgbSize: rgbBufferRef.current?.byteLength,
+              depthSize: depthBufferRef.current?.byteLength
+            })
+            
+            // Render based on current view (like the server viewer)
+            console.log('Rendering complete frame immediately, current view:', currentView)
+            if (currentView === 'color') {
+              renderRgb()
+            } else {
+              renderDepth()
+            }
           } else {
             console.log('Unexpected message sequence, resetting')
             // Reset for next frame
@@ -341,13 +608,33 @@ export function DepthViewer() {
   }
 
   useEffect(() => {
-    // start render loop
-    rafRef.current = window.requestAnimationFrame(renderLoop)
+    // start render loop after a short delay to ensure containers are mounted
+    const startRenderLoop = () => {
+      rafRef.current = window.requestAnimationFrame(renderLoop)
+    }
+    
+    // Start immediately and also after a short delay to ensure DOM is ready
+    startRenderLoop()
+    const timeoutId = setTimeout(startRenderLoop, 100)
+    
     return () => {
       try { websocketRef.current?.close() } catch {}
       if (rafRef.current) window.cancelAnimationFrame(rafRef.current)
+      clearTimeout(timeoutId)
     }
   }, [])
+
+  // Re-render when view changes
+  useEffect(() => {
+    if (latestHeaderRef.current && rgbBufferRef.current && depthBufferRef.current) {
+      console.log('View changed to:', currentView, '- re-rendering')
+      if (currentView === 'color') {
+        renderRgb()
+      } else {
+        renderDepth()
+      }
+    }
+  }, [currentView])
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
@@ -390,6 +677,24 @@ export function DepthViewer() {
             </div>
           </div>
 
+          <div className="flex gap-2 items-center">
+            <label className="text-sm text-muted-foreground">View:</label>
+            <Button 
+              onClick={() => setCurrentView('color')}
+              variant={currentView === 'color' ? 'default' : 'outline'}
+              size="sm"
+            >
+              Color
+            </Button>
+            <Button 
+              onClick={() => setCurrentView('depth')}
+              variant={currentView === 'depth' ? 'default' : 'outline'}
+              size="sm"
+            >
+              Depth
+            </Button>
+          </div>
+
           {error && (
             <Alert className="border-destructive/50">
               <AlertTitle>Error</AlertTitle>
@@ -418,6 +723,9 @@ export function DepthViewer() {
                   RGB: {header.left_rgb.width}×{header.left_rgb.height} • 
                   Depth: {header.depth.width}×{header.depth.height} • 
                   Scale: {header.depth.scale_m}m
+                  {rgbBufferRef.current && depthBufferRef.current && (
+                    <span className="text-green-500 ml-2">• Data Ready</span>
+                  )}
                 </span>
               ) : (
                 <span>Waiting for header…</span>
@@ -426,40 +734,28 @@ export function DepthViewer() {
             <div className="text-sm">{fps ? `${fps.toFixed(1)} fps` : ''}</div>
           </div>
 
-          {/* Camera Views - Side by Side */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* RGB View */}
-            <Card className="border">
-              <CardHeader>
-                <CardTitle className="text-sm">RGB Camera</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div ref={rgbContainerRef} className="w-full overflow-auto">
-                  <canvas
-                    ref={rgbCanvasRef}
-                    className="border rounded-md bg-black w-full"
-                    style={{ display: 'block', imageRendering: 'pixelated' as any }}
-                  />
+          {/* Camera View - Single Canvas like server viewer */}
+          <Card className="border">
+            <CardHeader>
+              <CardTitle className="text-sm">
+                {currentView === 'color' ? 'RGB Camera' : 'Depth Data'}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div ref={containerRef} className="w-full overflow-auto">
+                <canvas
+                  ref={canvasRef}
+                  className="border rounded-md bg-black w-full"
+                  style={{ display: 'block', imageRendering: 'pixelated' as any, minHeight: '300px' }}
+                />
+              </div>
+              {currentView === 'depth' && (
+                <div className="mt-2 text-xs text-muted-foreground">
+                  Depth Legend: <span className="text-white font-bold">White</span> (close) → <span className="text-gray-400">Gray</span> → <span className="text-gray-600">Dark Gray</span> → <span className="text-black font-bold">Black</span> (far)
                 </div>
-              </CardContent>
-            </Card>
-
-            {/* Depth View */}
-            <Card className="border">
-              <CardHeader>
-                <CardTitle className="text-sm">Depth Data</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div ref={depthContainerRef} className="w-full overflow-auto">
-                  <canvas
-                    ref={depthCanvasRef}
-                    className="border rounded-md bg-black w-full"
-                    style={{ display: 'block', imageRendering: 'pixelated' as any }}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+              )}
+            </CardContent>
+          </Card>
         </CardContent>
       </Card>
     </div>
