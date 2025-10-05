@@ -1072,7 +1072,7 @@ show_resources() {
         echo ""
         
         echo "📫 SQS Queues:"
-        queues=$(aws sqs list-queues --endpoint-url http://localhost:4566 --region us-east-1 --query 'QueueUrls[]' --output text 2>/dev/null || echo "")
+        queues=$(aws sqs list-queues --endpoint-url http://localhost:9324 --region us-east-1 --query 'QueueUrls[]' --output text 2>/dev/null || echo "")
         if [ -n "$queues" ]; then
             for queue in $queues; do
                 queue_name=$(basename "$queue")
@@ -1095,14 +1095,14 @@ cmd_urls() {
     echo "🔗 API Endpoints:"
     echo "  • DynamoDB: http://localhost:8000"
     echo "  • S3: http://localhost:4566"
-    echo "  • SQS: http://localhost:4566"
+    echo "  • SQS: http://localhost:9324"
     echo "  • Cognito: http://localhost:9239"
     echo ""
     
     echo "🛠️ AWS CLI Examples:"
     echo "  • DynamoDB: aws dynamodb list-tables --endpoint-url http://localhost:8000"
     echo "  • S3: aws s3 ls --endpoint-url http://localhost:4566"
-    echo "  • SQS: aws sqs list-queues --endpoint-url http://localhost:4566"
+    echo "  • SQS: aws sqs list-queues --endpoint-url http://localhost:9324"
     echo "  • Cognito: aws cognito-idp list-user-pools --max-results 10 --endpoint-url http://localhost:9239"
     echo ""
     
