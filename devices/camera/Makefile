@@ -1,15 +1,17 @@
-.PHONY: build run test clean help multiarch jetson
+.PHONY: build run test clean help multiarch jetson publish publish-version
 
 # Default target
 help:
 	@echo "Available commands:"
-	@echo "  make build      - Build the Docker image (single arch)"
-	@echo "  make multiarch  - Build multi-architecture image (Mac + Jetson)"
-	@echo "  make run        - Run the Docker container (Mac)"
-	@echo "  make jetson     - Run the Docker container (Jetson Nano)"
-	@echo "  make test       - Test the code locally"
-	@echo "  make clean      - Clean up Docker images"
-	@echo "  make help       - Show this help message"
+	@echo "  make build           - Build the Docker image (single arch)"
+	@echo "  make multiarch       - Build multi-architecture image (Mac + Jetson)"
+	@echo "  make run             - Run the Docker container (Mac)"
+	@echo "  make jetson          - Run the Docker container (Jetson Nano)"
+	@echo "  make test            - Test the code locally"
+	@echo "  make clean           - Clean up Docker images"
+	@echo "  make publish         - Build and publish to Docker Hub (latest)"
+	@echo "  make publish-version - Build and publish with version tag"
+	@echo "  make help            - Show this help message"
 
 # Build the Docker image
 build:
@@ -48,4 +50,15 @@ shell:
 shell-jetson:
 	docker run -it --rm --runtime nvidia --gpus all \
 		--privileged -v /dev/bus/usb:/dev/bus/usb \
-		camera:latest /bin/bash 
+		camera:latest /bin/bash
+
+# Publish to Docker Hub (latest version)
+publish:
+	@echo "🚀 Publishing to Docker Hub..."
+	@./publish.sh latest true
+
+# Publish to Docker Hub with specific version
+publish-version:
+	@echo "🚀 Publishing to Docker Hub with version..."
+	@read -p "Enter version (e.g., v1.0.0): " version; \
+	./publish.sh $$version true 

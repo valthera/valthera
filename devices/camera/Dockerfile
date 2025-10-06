@@ -52,8 +52,18 @@ RUN poetry config virtualenvs.create false
 # Install dependencies (skip installing the current project)
 RUN poetry install --only main --no-interaction --no-ansi --no-root
 
-# Install pyrealsense2 for Python RealSense support
-RUN pip3 install pyrealsense2
+# Install system dependencies for OpenCV
+RUN apt-get update && apt-get install -y \
+    libgl1-mesa-glx \
+    libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libxrender-dev \
+    libgomp1 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install pyrealsense2 and OpenCV for Python RealSense support
+RUN pip3 install pyrealsense2 opencv-python
 
 # Copy the camera module
 COPY camera/ ./camera/

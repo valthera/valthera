@@ -606,6 +606,26 @@ setup_sqs_queues() {
     create_queue_if_not_exists "valthera-dev-video-processor-dlq"
 }
 
+# Ensure sqs-admin is installed
+ensure_sqs_admin() {
+    if ! command -v sqs-admin &> /dev/null; then
+        print_info "sqs-admin not found, installing..."
+        if command -v npm &> /dev/null; then
+            npm install -g sqs-admin
+            if [ $? -eq 0 ]; then
+                print_success "sqs-admin installed successfully"
+            else
+                print_warning "Failed to install sqs-admin. You can install it manually with: npm install -g sqs-admin"
+            fi
+        else
+            print_warning "npm not found. Please install npm to use sqs-admin web interface"
+            print_info "You can still monitor SQS using AWS CLI"
+        fi
+    else
+        print_success "sqs-admin is already installed"
+    fi
+}
+
 # Setup Cognito
 setup_cognito() {
     print_subheader "Setting up Cognito (Local)"
@@ -734,6 +754,7 @@ cmd_start() {
     setup_dynamodb_tables
     setup_s3_buckets
     setup_sqs_queues
+    ensure_sqs_admin
     setup_datasources
     
     # Setup Cognito if container is running
@@ -797,6 +818,7 @@ cmd_start_force() {
     setup_dynamodb_tables
     setup_s3_buckets
     setup_sqs_queues
+    ensure_sqs_admin
     setup_datasources
     
     # Setup Cognito if container is running
@@ -1072,7 +1094,7 @@ show_resources() {
         echo ""
         
         echo "📫 SQS Queues:"
-        queues=$(aws sqs list-queues --endpoint-url http://localhost:4566 --region us-east-1 --query 'QueueUrls[]' --output text 2>/dev/null || echo "")
+        queues=$(aws sqs list-queues --endpoint-url http://localhost:9324 --region us-east-1 --query 'QueueUrls[]' --output text 2>/dev/null || echo "")
         if [ -n "$queues" ]; then
             for queue in $queues; do
                 queue_name=$(basename "$queue")
@@ -1095,14 +1117,14 @@ cmd_urls() {
     echo "🔗 API Endpoints:"
     echo "  • DynamoDB: http://localhost:8000"
     echo "  • S3: http://localhost:4566"
-    echo "  • SQS: http://localhost:4566"
+    echo "  • SQS: http://localhost:9324"
     echo "  • Cognito: http://localhost:9239"
     echo ""
     
     echo "🛠️ AWS CLI Examples:"
     echo "  • DynamoDB: aws dynamodb list-tables --endpoint-url http://localhost:8000"
     echo "  • S3: aws s3 ls --endpoint-url http://localhost:4566"
-    echo "  • SQS: aws sqs list-queues --endpoint-url http://localhost:4566"
+    echo "  • SQS: aws sqs list-queues --endpoint-url http://localhost:9324"
     echo "  • Cognito: aws cognito-idp list-user-pools --max-results 10 --endpoint-url http://localhost:9239"
     echo ""
     
@@ -1350,6 +1372,7 @@ cmd_rebuild() {
     setup_dynamodb_tables
     setup_s3_buckets
     setup_sqs_queues
+    ensure_sqs_admin
     setup_datasources
     
     # Step 5: Setup Cognito
