@@ -87,7 +87,9 @@ class DepthCamera:
     def _get_intrinsics(self, depth_frame: rs.depth_frame) -> Dict[str, float]:
         """Extract camera intrinsics"""
         try:
-            intrinsics = depth_frame.get_intrinsics()
+            # Get intrinsics from the depth stream profile
+            profile = depth_frame.get_profile()
+            intrinsics = profile.as_video_stream_profile().get_intrinsics()
             return {
                 'fx': intrinsics.fx,
                 'fy': intrinsics.fy,
@@ -155,6 +157,12 @@ class DepthCamera:
                         self.on_new_frame(frame)
                     
                     self.frame_count += 1
+                    
+                    # Log every 30 frames (about every second at 30fps)
+                    if self.frame_count % 30 == 0:
+                        logger.info(f"[DEPTH] Captured frame {self.frame_count}")
+                else:
+                    logger.warning(f"[DEPTH] Failed to capture frame")
                 
                 time.sleep(1.0 / self.fps)  # Control capture rate
                 

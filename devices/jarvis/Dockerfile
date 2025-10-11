@@ -34,13 +34,9 @@ RUN apt-get update && apt-get install -y \
     unzip \
     && rm -rf /var/lib/apt/lists/*
 
-# Add Intel RealSense repository and install RealSense SDK
-RUN curl -sSL https://librealsense.intel.com/Debian/apt-repo/conf/librealsense.pgp | apt-key add - && \
-    echo 'deb https://librealsense.intel.com/Debian/apt-repo focal main' | tee /etc/apt/sources.list.d/librealsense.list && \
-    apt-get update && apt-get install -y \
-    librealsense2-dev \
-    librealsense2-utils \
-    && rm -rf /var/lib/apt/lists/*
+# Note: RealSense SDK will be installed on the host system
+# For now, we'll skip RealSense installation in Docker
+# and rely on the host system's installation
 
 # Install Python and pip
 RUN apt-get update && apt-get install -y \

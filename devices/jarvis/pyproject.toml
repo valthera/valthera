@@ -10,6 +10,7 @@ package-mode = false
 python = ">=3.10,<3.12"
 fastapi = "^0.115.0"
 uvicorn = {extras = ["standard"], version = "^0.30.6"}
+websockets = "^12.0"
 numpy = "^1.26.4"
 opencv-python = "^4.8.0"
 pyaudio = "^0.2.13"
