@@ -19,6 +19,7 @@ ultralytics = "^8.0.0"
 torch = "^2.0.0"
 pillow = "^10.0.0"
 scipy = "^1.11.0"
+pyrealsense2 = "^2.54.0"
 
 [build-system]
 requires = ["poetry-core"]
