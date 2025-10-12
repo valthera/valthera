@@ -293,4 +293,29 @@ samconfig.toml
 
 tmp/
 
+### Machine Learning Models ###
+# Model files (downloaded automatically by frameworks)
+*.pt
+*.pth
+*.onnx
+*.h5
+*.pkl
+*.joblib
+*.safetensors
+*.bin
+*.ckpt
+*.weights
+*.model
+*.tflite
+*.pb
+*.pkl.gz
+*.npz
+*.npy
+
+# Model directories
+models/
+checkpoints/
+weights/
+pretrained/
+
 training/

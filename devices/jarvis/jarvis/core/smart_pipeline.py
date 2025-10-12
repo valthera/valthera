@@ -264,9 +264,9 @@ class SmartCVPipeline:
         """Initialize available classifiers"""
         try:
             # Register classifier types
-            from .classifiers.person_classifier import PersonClassifier
-            from .classifiers.object_classifier import ObjectClassifier
-            from .classifiers.face_classifier import FaceClassifier
+            from ..classifiers.person_classifier import PersonClassifier
+            from ..classifiers.object_classifier import ObjectClassifier
+            from ..classifiers.face_classifier import FaceClassifier
             
             self.registry.register_classifier_type("person", PersonClassifier)
             self.registry.register_classifier_type("object", ObjectClassifier)
