@@ -84,7 +84,7 @@ class DepthCamera:
             logger.error(f"[DEPTH] Error initializing RealSense: {e}")
             return False
     
-    def _get_intrinsics(self, depth_frame: rs.depth_frame) -> Dict[str, float]:
+    def _get_intrinsics(self, depth_frame) -> Dict[str, float]:
         """Extract camera intrinsics"""
         try:
             # Get intrinsics from the depth stream profile

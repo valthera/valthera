@@ -207,6 +207,10 @@ class CenterDepthProcessor:
             'depth_camera_running': self.depth_camera.is_running if self.depth_camera else False
         }
     
+    def get_depth_camera(self) -> Optional[DepthCamera]:
+        """Get the depth camera instance"""
+        return self.depth_camera
+    
     def cleanup(self):
         """Cleanup resources"""
         self.stop()

@@ -4,7 +4,6 @@ services:
     runtime: nvidia
     devices:
       - "/dev/bus/usb:/dev/bus/usb"
-      - "/dev/snd:/dev/snd"
       - "/dev/video0:/dev/video0"
       - "/dev/video1:/dev/video1"
       - "/dev/video2:/dev/video2"

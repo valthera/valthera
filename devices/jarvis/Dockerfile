@@ -24,9 +24,6 @@ RUN apt-get update && apt-get install -y \
     libssl-dev \
     libusb-1.0-0-dev \
     pkg-config \
-    portaudio19-dev \
-    libasound2-dev \
-    alsa-utils \
     libopencv-dev \
     python3 \
     python3-pip \
@@ -57,7 +54,7 @@ RUN poetry config virtualenvs.create false
 # Install dependencies (skip installing the current project)
 RUN poetry install --only main --no-interaction --no-ansi --no-root
 
-# Install system dependencies for OpenCV and audio
+# Install system dependencies for OpenCV
 RUN apt-get update && apt-get install -y \
     libgl1-mesa-glx \
     libglib2.0-0 \
@@ -65,18 +62,7 @@ RUN apt-get update && apt-get install -y \
     libxext6 \
     libxrender-dev \
     libgomp1 \
-    libsndfile1 \
     && rm -rf /var/lib/apt/lists/*
-
-# Download Vosk model (small model for Jetson compatibility)
-RUN mkdir -p /app/jarvis/models/vosk-model-small && \
-    cd /app/jarvis/models/vosk-model-small && \
-    wget -q https://alphacephei.com/vosk/models/vosk-model-small-en-us-0.15.zip && \
-    unzip -q vosk-model-small-en-us-0.15.zip && \
-    rm vosk-model-small-en-us-0.15.zip
-
-# Download OpenWakeWord models
-RUN python3 -c "from openwakeword.model import Model; Model()" || true
 
 # Copy the jarvis module
 COPY jarvis/ ./jarvis/
@@ -85,9 +71,9 @@ COPY jarvis/ ./jarvis/
 RUN echo '#!/bin/bash\n\
 set -e\n\
 PORT="${JARVIS_HTTP_PORT:-8001}"\n\
-echo "Starting Jarvis multi-modal agent on port $PORT..."\n\
-echo "Audio: Wake word detection + speech-to-text"\n\
+echo "Starting Jarvis camera agent on port $PORT..."\n\
 echo "Video: YOLOv8 person detection"\n\
+echo "Depth: Center depth streaming"\n\
 exec uvicorn jarvis.server:app --host 0.0.0.0 --port "$PORT"' > /app/start.sh && \
     chmod +x /app/start.sh
 

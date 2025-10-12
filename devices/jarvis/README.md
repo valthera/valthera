@@ -1,241 +1,465 @@
-# Jarvis Multi-Modal Agent
+# Jarvis Smart CV Pipeline
 
-A Docker-based multi-modal agent for Jetson Nano that processes audio (microphone) and video (camera) streams using local models without internet connectivity.
+A Docker-based intelligent computer vision pipeline for Jetson Nano that provides multi-classifier support, real-time analysis, and a modern React web interface.
 
-## Features
+## 🚀 Features
 
-- **Wake Word Detection**: Listens for "Jarvis" using Porcupine (offline)
-- **Speech-to-Text**: Transcribes speech using Vosk (offline, local models)
-- **Person Detection**: Counts people in camera feed using YOLOv8n (offline)
-- **Real-time Logging**: All outputs accessible via logs and HTTP endpoints
+- **Smart CV Pipeline**: Intelligent processing with multi-classifier support and result caching
+- **Multi-Classifier Support**: Person, object, and face detection with unified API
+- **Real-time Analysis**: WebSocket streaming and REST API endpoints
+- **Modern Web Interface**: React-based dashboard with live visualization
+- **3D Positioning**: Depth integration with RealSense camera
+- **Efficient Processing**: Parallel classifier execution and result caching
 - **Jetson Optimized**: Designed for efficient operation on Jetson Nano
 
-## Architecture
+## 🏗️ Architecture
 
-- **Audio Processing**: Porcupine wake word detection + Vosk speech-to-text
-- **Video Processing**: YOLOv8n person detection (counting people > 0)
-- **Deployment**: Docker container with USB device access (mic/camera)
-- **Logging**: All outputs to docker logs and `/tmp/jarvis.log`
+- **Smart CV Pipeline**: Multi-classifier processing with parallel execution
+- **Classifier Registry**: Dynamic classifier management and shared model loading
+- **Result Cache**: TTL-based caching to avoid duplicate processing
+- **Unified API**: REST and WebSocket endpoints for analysis and streaming
+- **React Web App**: Modern interface served via nginx
+- **Docker Services**: Separate API and web containers with networking
 
-## Quick Start
+## ⚡ Quick Start
 
 ### 1) Setup mDNS (so it's reachable at jarvis.local)
 
 Run on the Jetson:
 
 ```bash
-bash devices/naomi/scripts/setup-mdns.sh naomi "Valthera Naomi" 8001
+bash devices/jarvis/scripts/setup-mdns.sh jarvis "Valthera Jarvis" 8001
 ```
 
-### 2) Deploy Naomi service
+### 2) Deploy Jarvis services
 
 ```bash
 # Adjust REPO_DIR if your repo is not at /opt/valthera/valthera on the Jetson
 export REPO_DIR=/opt/valthera/valthera
-bash devices/naomi/scripts/deploy.sh
+bash devices/jarvis/scripts/deploy.sh
 ```
 
-### 3) Test from your laptop
+### 3) Access the services
 
 ```bash
-ping -c 3 naomi.local
-curl http://naomi.local:8001/health
+# Web interface
+http://jarvis.local:3000
+
+# API health check
+curl http://jarvis.local:8001/health
+
+# API documentation
+http://jarvis.local:8001/docs
 ```
 
-## Usage
+## 🔧 Services
 
-### Wake Word Detection
+### API Service (Port 8001)
+- FastAPI backend with smart CV pipeline
+- REST endpoints for analysis and control
+- WebSocket streaming for real-time data
+- Multi-classifier support (person, object, face)
+- Health monitoring and logging
 
-Naomi continuously listens for "Hey Naomi". When detected:
+### Web Service (Port 3000)
+- React-based dashboard with TypeScript
+- Real-time visualization and detection overlay
+- Classifier management interface
+- Settings and debug tools
+- Nginx proxy for API requests
 
-1. Records audio for 3 seconds
-2. Transcribes using Vosk
-3. Logs the transcription
+## 📡 API Endpoints
 
-Example log output:
+### Core Analysis
+- `POST /api/v1/analyze` - Unified analysis endpoint
+- `GET /api/v1/analyze/status` - Analysis pipeline status
+- `POST /api/v1/analyze/test` - Test analysis with default parameters
+
+### WebSocket Streaming
+- `WS /api/v1/stream` - Real-time analysis results
+- Subscribe/unsubscribe to specific classifiers
+- Live detection streaming
+
+### Pipeline Control
+- `GET /api/v1/status` - Detailed system status
+- `POST /api/v1/pipeline/start` - Start CV pipeline
+- `POST /api/v1/pipeline/stop` - Stop CV pipeline
+- `POST /api/v1/pipeline/reset` - Reset pipeline
+- `GET /api/v1/pipeline/config` - Get configuration
+- `POST /api/v1/pipeline/config` - Update configuration
+
+### Classifier Management
+- `GET /api/v1/classifiers` - List all classifiers
+- `GET /api/v1/classifiers/{name}` - Get classifier info
+- `POST /api/v1/classifiers/{name}/config` - Configure classifier
+- `POST /api/v1/classifiers/{name}/enable` - Enable classifier
+- `POST /api/v1/classifiers/{name}/disable` - Disable classifier
+- `POST /api/v1/classifiers/{name}/initialize` - Initialize classifier
+
+### Frame Access
+- `GET /api/v1/latest` - Latest analysis result
+- `GET /api/v1/frame/annotated` - Annotated frame (JPEG)
+- `GET /api/v1/frame/raw` - Raw frame (JPEG)
+- `GET /api/v1/depth/map` - Depth map (JPEG)
+- `GET /api/v1/depth/data` - Depth data (JSON)
+
+## 💻 Usage Examples
+
+### REST API Analysis
+
+```bash
+# Analyze with person detection
+curl -X POST http://jarvis.local:8001/api/v1/analyze \
+  -H "Content-Type: application/json" \
+  -d '{
+    "classifiers": ["person"],
+    "options": {
+      "confidence_threshold": 0.5,
+      "include_depth": true,
+      "include_3d_position": true
+    }
+  }'
+
+# Analyze with multiple classifiers
+curl -X POST http://jarvis.local:8001/api/v1/analyze \
+  -H "Content-Type: application/json" \
+  -d '{
+    "classifiers": ["person", "object", "face"],
+    "options": {
+      "confidence_threshold": 0.3,
+      "include_depth": true,
+      "include_3d_position": true,
+      "max_detections": 20
+    },
+    "filters": {
+      "min_confidence": 0.2,
+      "max_distance_mm": 5000
+    }
+  }'
 ```
-[2025-10-11 15:23:45] [AUDIO] Wake word detected!
-[2025-10-11 15:23:48] [AUDIO] Transcription: "what is the weather today"
+
+### WebSocket Streaming
+
+```javascript
+const ws = new WebSocket('ws://jarvis.local:8001/api/v1/stream');
+
+ws.onopen = () => {
+  // Subscribe to person and object detection
+  ws.send(JSON.stringify({
+    action: 'subscribe',
+    classifiers: ['person', 'object'],
+    options: {
+      confidence_threshold: 0.5,
+      include_depth: true,
+      include_3d_position: true
+    }
+  }));
+};
+
+ws.onmessage = (event) => {
+  const data = JSON.parse(event.data);
+  if (data.type === 'analysis_result') {
+    console.log('Detections:', data.detections);
+    console.log('Frame ID:', data.frame_id);
+    console.log('Processing time:', data.processing_time_ms + 'ms');
+  }
+};
 ```
 
-### Person Detection
+### Pipeline Control
 
-Naomi continuously processes camera feed:
+```bash
+# Start pipeline
+curl -X POST http://jarvis.local:8001/api/v1/pipeline/start
 
-1. Runs YOLOv8n inference every 0.1 seconds
-2. Counts detected people (confidence > 50%)
-3. Logs when count changes
+# Update configuration
+curl -X POST http://jarvis.local:8001/api/v1/pipeline/config \
+  -H "Content-Type: application/json" \
+  -d '{
+    "fps": 15,
+    "confidence_threshold": 0.6,
+    "max_detections": 15,
+    "enabled_classifiers": ["person", "object"],
+    "include_depth": true,
+    "include_3d_position": true
+  }'
 
-Example log output:
+# Get system status
+curl http://jarvis.local:8001/api/v1/status
 ```
-[2025-10-11 15:23:10] [VIDEO] Detected 2 person(s) in frame
-[2025-10-11 15:24:15] [VIDEO] Detected 1 person(s) in frame
-```
 
-## API Endpoints
+## 🌐 Web Interface
 
-- `GET /` - Basic info about Naomi
-- `GET /health` - Health status of audio/video processors
-- `GET /status` - Detailed status including person count
-- `GET /logs` - Recent log entries (last 100 lines)
+The React web interface provides:
 
-## Hardware Requirements
+### Dashboard
+- Real-time detection visualization
+- Live video feeds (annotated, raw, depth)
+- Detection statistics and summaries
+- WebSocket connection status
+
+### Classifiers
+- Manage available classifiers
+- Enable/disable classifiers
+- View performance statistics
+- Initialize classifiers
+
+### Settings
+- Configure pipeline parameters
+- Adjust processing settings
+- Control output options
+- Pipeline start/stop/reset
+
+### Debug
+- Developer tools and debug information
+- Live detection overlay
+- JSON result inspection
+- System status monitoring
+
+## 🖥️ Hardware Requirements
 
 ### Jetson Nano
-- USB microphone (or built-in mic)
 - USB camera (or built-in camera)
+- RealSense depth camera (D435i recommended)
 - NVIDIA runtime for GPU acceleration
 - At least 4GB RAM
 
 ### Development Machine
 - Docker with buildx support
+- Node.js for web development (optional)
 - No special hardware required for testing
 
-## Directory Structure
+## 📁 Directory Structure
 
 ```
-devices/naomi/
-├── docker-compose.yml           # Base compose file
-├── jetson.naomi.override.yml    # Jetson-specific overrides
-├── Dockerfile                   # Multi-arch with dependencies
-├── pyproject.toml               # Python dependencies
-├── naomi/                       # Python module
+devices/jarvis/
+├── docker-compose.yml              # Multi-service compose file
+├── jetson.jarvis.override.yml     # Jetson-specific overrides
+├── Dockerfile                      # API service container
+├── pyproject.toml                  # Python dependencies
+├── jarvis/                         # Python module
 │   ├── __init__.py
-│   ├── audio_processor.py       # Wake word + transcription
-│   ├── video_processor.py       # YOLOv8 person detection
-│   ├── server.py                # FastAPI server
-│   └── models/                  # Local model storage
-│       ├── porcupine_params/    # Wake word model
-│       └── vosk-model-small/    # Speech-to-text model
+│   ├── server.py                   # FastAPI server
+│   ├── models/                     # Data models
+│   │   ├── __init__.py
+│   │   └── base.py                 # Unified detection models
+│   ├── classifiers/                # AI classifiers
+│   │   ├── __init__.py
+│   │   ├── registry.py             # Classifier registry
+│   │   ├── person_classifier.py    # Person detection
+│   │   ├── object_classifier.py    # Object detection
+│   │   └── face_classifier.py      # Face detection
+│   ├── core/                       # Core functionality
+│   │   ├── __init__.py
+│   │   ├── cache.py                # Result caching
+│   │   └── smart_pipeline.py       # Smart CV pipeline
+│   ├── api/                        # API endpoints
+│   │   ├── __init__.py
+│   │   └── v1/                     # API v1
+│   │       ├── __init__.py
+│   │       ├── analyze.py          # Analysis endpoints
+│   │       ├── stream.py           # WebSocket streaming
+│   │       ├── pipeline.py         # Pipeline control
+│   │       ├── classifiers.py      # Classifier management
+│   │       └── frames.py           # Frame access
+│   ├── depth_camera.py             # RealSense interface
+│   └── center_depth_processor.py  # Depth processing
+├── web/                            # React web application
+│   ├── Dockerfile                  # Web service container
+│   ├── nginx.conf                  # Nginx configuration
+│   ├── package.json                # Node.js dependencies
+│   ├── vite.config.ts              # Vite configuration
+│   ├── tailwind.config.js          # Tailwind CSS config
+│   └── src/                        # React source code
+│       ├── main.tsx                # App entry point
+│       ├── App.tsx                  # Main app component
+│       ├── types/                   # TypeScript types
+│       │   └── api.ts              # API type definitions
+│       ├── services/                # API clients
+│       │   ├── api.ts              # REST API client
+│       │   └── websocket.ts        # WebSocket client
+│       ├── components/              # React components
+│       │   ├── StatusPanel.tsx     # Connection status
+│       │   ├── DetectionView.tsx   # Detection visualization
+│       │   └── VideoFeed.tsx       # Video feed display
+│       └── pages/                   # Page components
+│           ├── Dashboard.tsx        # Main dashboard
+│           ├── Classifiers.tsx      # Classifier management
+│           ├── Settings.tsx        # Configuration
+│           └── Debug.tsx            # Debug tools
 ├── scripts/
-│   ├── deploy.sh                # Deployment script
-│   └── setup-mdns.sh            # mDNS setup
+│   ├── deploy.sh                   # Deployment script
+│   ├── dev.sh                      # Development script
+│   └── setup-mdns.sh              # mDNS setup
 └── README.md
 ```
 
-## Development
+## 🛠️ Development
 
-### Local Testing (without GPU)
+### Local Development
 
 ```bash
-# Build the container
-docker build -t naomi:local .
+# Start development environment
+bash devices/jarvis/scripts/dev.sh
 
-# Run without GPU acceleration
-docker run --rm -p 8001:8001 \
-  --device /dev/snd:/dev/snd \
-  --device /dev/video0:/dev/video0 \
-  naomi:local
+# This will start:
+# - API service on port 8001
+# - Web dev server on port 3000
+# - Hot reload for both services
+```
+
+### Manual Service Management
+
+```bash
+# Start all services
+sudo docker compose up -d
+
+# Start specific service
+sudo docker compose up -d jarvis-api
+sudo docker compose up -d jarvis-web
+
+# Stop all services
+sudo docker compose down
+
+# View logs
+sudo docker compose logs -f jarvis-api
+sudo docker compose logs -f jarvis-web
+
+# Restart services
+sudo docker compose restart
+```
+
+### Building Services
+
+```bash
+# Build API service
+docker build -t jarvis-api:local .
+
+# Build web service
+cd web
+docker build -t jarvis-web:local .
 ```
 
 ### Testing Individual Components
 
 ```bash
-# Test audio processor
-docker run --rm --device /dev/snd:/dev/snd naomi:local python3 -m naomi.audio_processor
+# Test smart pipeline
+docker run --rm jarvis-api:local python3 -m jarvis.core.smart_pipeline
 
-# Test video processor
-docker run --rm --device /dev/video0:/dev/video0 naomi:local python3 -m naomi.video_processor
+# Test classifiers
+docker run --rm jarvis-api:local python3 -m jarvis.classifiers.person_classifier
+docker run --rm jarvis-api:local python3 -m jarvis.classifiers.object_classifier
+docker run --rm jarvis-api:local python3 -m jarvis.classifiers.face_classifier
+
+# Test API endpoints
+curl http://jarvis.local:8001/api/v1/health
+curl http://jarvis.local:8001/api/v1/classifiers
 ```
 
-### View Logs
-
-```bash
-# Docker logs
-docker logs -f <container_id>
-
-# HTTP endpoint
-curl http://naomi.local:8001/logs
-```
-
-## Configuration
+## ⚙️ Configuration
 
 ### Environment Variables
 
-- `NAOMI_HTTP_PORT`: HTTP server port (default: 8001)
+- `JARVIS_HTTP_PORT`: API server port (default: 8001)
 
-### Audio Settings
+### Pipeline Settings
 
-- Sample rate: 16kHz
-- Wake word: "Hey Naomi"
-- Recording duration: 3 seconds after wake word
-- Confidence threshold: 50%
+- **FPS**: Processing frames per second (default: 10)
+- **Confidence Threshold**: Minimum detection confidence (default: 0.5)
+- **Max Detections**: Maximum detections per frame (default: 10)
+- **Enabled Classifiers**: Active classifiers (default: ["person"])
+- **Include Depth**: Enable depth information (default: true)
+- **Include 3D Position**: Enable 3D positioning (default: true)
 
-### Video Settings
+### Classifier Settings
 
-- Resolution: 640x480
-- Processing rate: 10 FPS
-- Model: YOLOv8n (nano)
-- Person class: 0 (COCO dataset)
-- Confidence threshold: 50%
+- **Person Classifier**: YOLOv8n with person class filtering
+- **Object Classifier**: YOLOv8n with all 80 COCO classes
+- **Face Classifier**: YOLOv8n with face detection (placeholder for future models)
 
-## Troubleshooting
+## 🔍 Troubleshooting
 
 ### Common Issues
 
-1. **No microphone detected**
+1. **Services not starting**
    ```bash
-   # Check audio devices
-   docker run --rm --device /dev/snd:/dev/snd naomi:local python3 -c "import pyaudio; p = pyaudio.PyAudio(); [print(f'{i}: {p.get_device_info_by_index(i)['name']}') for i in range(p.get_device_count())]"
+   # Check service status
+   sudo docker compose ps
+   
+   # View logs
+   sudo docker compose logs jarvis-api
+   sudo docker compose logs jarvis-web
    ```
 
-2. **No camera detected**
+2. **WebSocket connection failed**
    ```bash
-   # Check video devices
-   docker run --rm --device /dev/video0:/dev/video0 naomi:local python3 -c "import cv2; print([i for i in range(5) if cv2.VideoCapture(i).isOpened()])"
+   # Check API service
+   curl http://jarvis.local:8001/health
+   
+   # Test WebSocket endpoint
+   wscat -c ws://jarvis.local:8001/api/v1/stream
    ```
 
-3. **Models not loading**
-   - Check if Vosk model downloaded during build
-   - Verify model paths in logs
+3. **No detections**
+   ```bash
+   # Check classifier status
+   curl http://jarvis.local:8001/api/v1/classifiers
+   
+   # Test analysis endpoint
+   curl -X POST http://jarvis.local:8001/api/v1/analyze/test
+   ```
 
-4. **Performance issues on Jetson**
-   - Reduce video processing rate in `video_processor.py`
-   - Use smaller YOLO model variant
+4. **Performance issues**
+   - Reduce FPS in pipeline settings
+   - Disable unused classifiers
    - Check GPU memory usage
+   - Monitor cache hit rates
+
+5. **404 errors on API endpoints**
+   - Ensure API service is running: `sudo docker compose ps`
+   - Check API health: `curl http://jarvis.local:8001/health`
+   - Verify pipeline is started: `curl -X POST http://jarvis.local:8001/api/v1/pipeline/start`
 
 ### Debug Mode
 
 ```bash
 # Interactive shell
-docker run -it --rm --device /dev/snd:/dev/snd --device /dev/video0:/dev/video0 naomi:local /bin/bash
+sudo docker compose exec jarvis-api /bin/bash
 
 # Check logs
-docker logs <container_id> 2>&1 | grep -E "\[AUDIO\]|\[VIDEO\]"
+sudo docker compose logs -f jarvis-api | grep -E "\[SMART_PIPELINE\]|\[CLASSIFIER\]|\[API\]"
 ```
 
-## Model Information
+## 🤖 Model Information
 
-### Vosk Model
-- **Model**: vosk-model-small-en-us-0.15
-- **Size**: ~40MB
-- **Language**: English (US)
-- **Downloaded**: During Docker build
-
-### YOLOv8 Model
-- **Model**: yolov8n.pt
-- **Size**: ~6MB
-- **Classes**: 80 (COCO dataset)
-- **Person class**: 0
+### YOLOv8 Models
+- **Person**: yolov8n.pt (person class only)
+- **Object**: yolov8n.pt (all 80 COCO classes)
+- **Face**: yolov8n.pt (placeholder for dedicated face model)
+- **Size**: ~6MB each
 - **Downloaded**: On first run
 
-### Porcupine
-- **Wake word**: "Hey Naomi"
-- **Model**: Built-in (no download needed)
-- **Offline**: Yes
+### RealSense SDK
+- **Version**: 2.54.0
+- **Hardware**: D435i recommended
+- **Streams**: Color + Depth
+- **Alignment**: Depth-to-color
 
-## Security Notes
+## 🔒 Security Notes
 
 - Container runs with `--privileged` for USB device access
 - No external network calls (fully offline)
 - All processing happens locally
-- Logs may contain transcribed speech (consider privacy)
+- WebSocket connections are not authenticated (local network only)
+- Depth data may contain sensitive spatial information
 
-## License
+## 📄 License
 
 This project uses several open-source libraries:
-- Porcupine (Picovoice) - Wake word detection
-- Vosk - Speech-to-text
 - YOLOv8 (Ultralytics) - Object detection
 - FastAPI - Web framework
+- React - Web interface
 - OpenCV - Computer vision
+- RealSense SDK - Depth camera interface
+- Tailwind CSS - Styling
+- Vite - Build tool

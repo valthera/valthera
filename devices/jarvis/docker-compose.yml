@@ -7,17 +7,44 @@ x-logging: &default-logging
     max-file: "3"
 
 services:
-  jarvis:
+  jarvis-api:
     build:
       context: .
       dockerfile: Dockerfile
-    image: valthera/jarvis:local
+    image: valthera/jarvis-api:local
     restart: always
     environment:
       - JARVIS_HTTP_PORT=8001
+    ports:
+      - "8001:8001"
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:8001/health"]
       interval: 20s
       timeout: 3s
       retries: 5
     logging: *default-logging
+    networks:
+      - jarvis-network
+
+  jarvis-web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    image: valthera/jarvis-web:local
+    restart: always
+    ports:
+      - "3000:3000"
+    depends_on:
+      - jarvis-api
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    logging: *default-logging
+    networks:
+      - jarvis-network
+
+networks:
+  jarvis-network:
+    driver: bridge
