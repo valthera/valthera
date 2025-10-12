@@ -14,6 +14,7 @@ from pydantic import BaseModel, Field
 
 from ...models.base import AnalysisRequest, AnalysisResult, UnifiedDetection
 from ...core.smart_pipeline import SmartCVPipeline
+from ...processor_manager import ensure_processors_initialized
 
 logger = logging.getLogger(__name__)
 
@@ -58,6 +59,13 @@ async def analyze(request: AnalysisRequestModel):
     This endpoint intelligently processes requests using multiple classifiers
     and returns comprehensive detection results with 3D positioning.
     """
+    # Ensure processors are initialized on-demand
+    try:
+        ensure_processors_initialized()
+    except Exception as e:
+        logger.error(f"Failed to initialize processors: {e}")
+        raise HTTPException(status_code=503, detail=f"Failed to initialize camera processors: {str(e)}")
+    
     if not smart_pipeline:
         raise HTTPException(status_code=503, detail="Smart CV pipeline not available")
     

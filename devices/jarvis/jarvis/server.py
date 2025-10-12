@@ -16,6 +16,7 @@ from .center_depth_processor import CenterDepthProcessor
 from .core.smart_pipeline import SmartCVPipeline
 from .api import api_v1_router
 from .api.v1.stream import start_websocket_manager, stop_websocket_manager, broadcast_analysis_result
+from .processor_manager import ensure_processors_initialized, get_processors, cleanup_processors
 
 # Configuration
 HTTP_PORT = int(os.environ.get("JARVIS_HTTP_PORT", "8001"))
@@ -42,84 +43,32 @@ app.add_middleware(
     allow_headers=["*"]
 )
 
-# Global processors
+# Global processors (managed by processor_manager)
 center_depth_processor: Optional[CenterDepthProcessor] = None
 smart_pipeline: Optional[SmartCVPipeline] = None
 
 
 @app.on_event("startup")
 async def startup_event():
-    """Initialize processors on startup"""
+    """Initialize basic services on startup (without camera processing)"""
     global center_depth_processor, smart_pipeline
     
-    logger.info("Starting Jarvis Smart CV Pipeline...")
+    logger.info("Starting Jarvis Smart CV Pipeline API...")
     
     try:
         # Start WebSocket manager
         await start_websocket_manager()
         logger.info("WebSocket manager started")
         
-        # Initialize processors in background to avoid blocking
-        def init_in_background():
-            global center_depth_processor, smart_pipeline
-            try:
-                # Initialize center depth processor
-                logger.info("Initializing center depth processor...")
-                center_depth_processor = CenterDepthProcessor()
-                center_depth_processor.start()
-                logger.info("Center depth processor started")
-                
-                # Initialize smart CV pipeline with existing depth camera
-                logger.info("Initializing smart CV pipeline...")
-                existing_depth_camera = center_depth_processor.get_depth_camera()
-                smart_pipeline = SmartCVPipeline(depth_camera=existing_depth_camera)
-                smart_pipeline.start()
-                logger.info("Smart CV pipeline started")
-                
-                # Set up detection callback for WebSocket broadcasting
-                def on_detection(result):
-                    try:
-                        # Try to get the current event loop
-                        loop = asyncio.get_event_loop()
-                        if loop.is_running():
-                            # Schedule the coroutine to run
-                            asyncio.run_coroutine_threadsafe(broadcast_analysis_result(result), loop)
-                        else:
-                            # If no running loop, just log the result
-                            logger.info(f"[CALLBACK] Detection result: {result.get_total_detections()} objects")
-                    except RuntimeError:
-                        # No event loop available, just log
-                        logger.info(f"[CALLBACK] Detection result: {result.get_total_detections()} objects")
-                
-                smart_pipeline.set_detection_callback(on_detection)
-                logger.info("Detection callback configured")
-                
-                # Set pipeline in API modules
-                from .api.v1.analyze import set_pipeline as set_analyze_pipeline
-                from .api.v1.stream import set_pipeline as set_stream_pipeline
-                from .api.v1.pipeline import set_pipeline as set_pipeline_pipeline
-                from .api.v1.classifiers import set_pipeline as set_classifiers_pipeline
-                from .api.v1.frames import set_pipeline as set_frames_pipeline
-                
-                set_analyze_pipeline(smart_pipeline)
-                set_stream_pipeline(smart_pipeline)
-                set_pipeline_pipeline(smart_pipeline)
-                set_classifiers_pipeline(smart_pipeline)
-                set_frames_pipeline(smart_pipeline)
-                
-                logger.info("API modules configured with pipeline")
-                
-            except Exception as e:
-                logger.error(f"Failed to initialize processors: {e}")
+        # Initialize processors as None - will be created on-demand
+        center_depth_processor = None
+        smart_pipeline = None
         
-        # Start in a separate thread to avoid blocking the event loop
-        threading.Thread(target=init_in_background, daemon=True).start()
+        logger.info("API server ready. Camera processing will start on first request.")
         
     except Exception as e:
-        logger.error(f"Failed to initialize processors during startup: {e}")
-        logger.warning("Processors will not be available. Use /api/v1/pipeline/start to retry.")
-    
-    logger.info("Jarvis Smart CV Pipeline is ready!")
+        logger.error(f"Startup error: {e}")
+
 
 
 @app.on_event("shutdown")
@@ -153,6 +102,9 @@ app.include_router(api_v1_router)
 @app.get("/health")
 async def health():
     """Health check endpoint"""
+    # Get current processor status from processor manager
+    center_depth_processor, smart_pipeline = get_processors()
+    
     status = {
         "status": "healthy",
         "timestamp": time.time(),
@@ -169,6 +121,21 @@ async def health():
     
     logger.info(f"Health check: {status}")
     return JSONResponse(status)
+
+
+@app.post("/api/v1/pipeline/initialize")
+async def initialize_pipeline():
+    """Manually initialize camera processors"""
+    try:
+        ensure_processors_initialized()
+        return {
+            "status": "success",
+            "message": "Camera processors initialized successfully",
+            "timestamp": time.time()
+        }
+    except Exception as e:
+        logger.error(f"Failed to initialize processors: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to initialize processors: {str(e)}")
 
 
 @app.get("/logs")

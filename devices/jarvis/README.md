@@ -23,6 +23,8 @@ A Docker-based intelligent computer vision pipeline for Jetson Nano that provide
 
 ## ⚡ Quick Start
 
+### Docker Setup (Recommended)
+
 ### 1) Setup mDNS (so it's reachable at jarvis.local)
 
 Run on the Jetson:
@@ -51,6 +53,286 @@ curl http://jarvis.local:8001/health
 # API documentation
 http://jarvis.local:8001/docs
 ```
+
+### Non-Docker Quick Start (API Only)
+
+**Recommended for systems without Node.js installed:**
+
+```bash
+# Install Poetry (if not installed)
+curl -sSL https://install.python-poetry.org | python3 -
+
+# Start API server
+cd devices/jarvis
+poetry install
+poetry run python -m jarvis.server
+
+# Test API
+curl http://localhost:8001/health
+
+# Access API documentation
+# Open browser to: http://localhost:8001/docs
+```
+
+## 🚀 Running Without Docker
+
+### Prerequisites
+
+#### Minimal Requirements (API Only)
+- Python 3.10-3.11
+- Poetry (Python dependency management)
+- USB camera access (for video input)
+- RealSense camera (optional, for depth data)
+
+#### Full Requirements (API + Web Interface)
+- All minimal requirements above, plus:
+- Node.js 18+ (comes with npm)
+- pnpm (recommended) or npm (fallback)
+
+#### Install Poetry
+```bash
+# Install Poetry (if not already installed)
+curl -sSL https://install.python-poetry.org | python3 -
+
+# Add Poetry to PATH (add to ~/.bashrc or ~/.zshrc)
+export PATH="$HOME/.local/bin:$PATH"
+```
+
+**Note**: Poetry 2.0+ removed the `shell` command. Use `poetry run` instead, or activate the environment manually:
+```bash
+# Option 1: Use poetry run (recommended)
+poetry run python -m jarvis.server
+
+# Option 2: Activate environment manually
+source $(poetry env info --path)/bin/activate
+python -m jarvis.server
+```
+
+#### Install Node.js and Package Manager
+
+**Step 1: Install Node.js**
+```bash
+# Option 1: Using Node Version Manager (nvm) - recommended
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
+source ~/.bashrc
+nvm install 18
+nvm use 18
+
+# Option 2: Using package manager (Ubuntu/Debian)
+curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+sudo apt-get install -y nodejs
+
+# Option 3: Using snap
+sudo snap install node --classic
+
+# Verify installation
+node --version
+npm --version
+```
+
+**Step 2: Choose Package Manager**
+Choose one of the following package managers:
+
+**Option A: Install pnpm (recommended)**
+```bash
+# Install pnpm globally
+npm install -g pnpm
+
+# Verify installation
+pnpm --version
+```
+
+**Option B: Use npm (comes with Node.js)**
+```bash
+# npm comes with Node.js, no additional installation needed
+npm --version
+```
+
+### 1) API Server Setup (Required)
+
+```bash
+# Navigate to Jarvis directory
+cd devices/jarvis
+
+# Install Python dependencies
+poetry install
+
+# Start the API server
+poetry run python -m jarvis.server
+```
+
+The API server will start on `http://localhost:8001` by default.
+
+**API Access:**
+- Health check: `curl http://localhost:8001/health`
+- Documentation: `http://localhost:8001/docs`
+- WebSocket: `ws://localhost:8001/api/v1/stream`
+
+### 2) Web Application Setup (Optional)
+
+**Prerequisite**: Node.js must be installed (see installation instructions below).
+
+In a separate terminal:
+
+**Using pnpm:**
+```bash
+# Navigate to web directory
+cd devices/jarvis/web
+
+# Install dependencies
+pnpm install
+
+# Start development server
+pnpm dev
+```
+
+**Using npm (if pnpm not available):**
+```bash
+# Navigate to web directory
+cd devices/jarvis/web
+
+# Install dependencies
+npm install
+
+# Start development server
+npm run dev
+```
+
+The web application will start on `http://localhost:3000` by default.
+
+### 3) Access Services
+
+**API-Only Setup (Recommended when Node.js not available):**
+```bash
+# API health check
+curl http://localhost:8001/health
+
+# API documentation
+http://localhost:8001/docs
+
+# WebSocket streaming
+ws://localhost:8001/api/v1/stream
+```
+
+**Full Setup (API + Web):**
+```bash
+# Web interface
+http://localhost:3000
+
+# API health check
+curl http://localhost:8001/health
+
+# API documentation
+http://localhost:8001/docs
+```
+
+### Environment Variables
+
+You can customize the API server behavior with environment variables:
+
+```bash
+# Set custom port
+export JARVIS_HTTP_PORT=8002
+
+# Start with custom port
+poetry run python -m jarvis.server
+```
+
+### Development Workflow
+
+**API-Only Development (Recommended when Node.js not available):**
+```bash
+# Terminal 1: API Server
+cd devices/jarvis
+poetry run python -m jarvis.server
+
+# Test API endpoints
+curl http://localhost:8001/health
+curl http://localhost:8001/api/v1/classifiers
+```
+
+**Full Development (API + Web):**
+```bash
+# Terminal 1: API Server
+cd devices/jarvis
+poetry run python -m jarvis.server
+
+# Terminal 2: Web App (pnpm)
+cd devices/jarvis/web
+pnpm dev
+
+# Terminal 2: Web App (npm alternative)
+cd devices/jarvis/web
+npm run dev
+```
+
+Both services support hot reload:
+- **API Server**: Restart manually when Python files change
+- **Web App**: Automatically reloads on file changes
+
+### Troubleshooting Non-Docker Setup
+
+1. **Permission Issues with Camera**
+   ```bash
+   # Add user to video group
+   sudo usermod -a -G video $USER
+   
+   # Logout and login again, or run:
+   newgrp video
+   ```
+
+2. **Poetry Virtual Environment Issues**
+   ```bash
+   # Recreate virtual environment
+   poetry env remove python
+   poetry install
+   
+   # If poetry shell doesn't work (Poetry 2.0+), use:
+   poetry run python -m jarvis.server
+   
+   # Or activate manually:
+   source $(poetry env info --path)/bin/activate
+   ```
+
+3. **Node.js/Package Manager Issues**
+   ```bash
+   # Check if Node.js is installed
+   node --version
+   npm --version
+   
+   # If Node.js is not installed, install it first:
+   # Option 1: Using nvm (recommended)
+   curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
+   source ~/.bashrc
+   nvm install 18
+   
+   # Option 2: Using package manager
+   curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+   sudo apt-get install -y nodejs
+   
+   # If pnpm is not available, use npm instead
+   cd devices/jarvis/web
+   npm install
+   npm run dev
+   
+   # Clear package manager cache
+   pnpm store prune  # for pnpm
+   npm cache clean --force  # for npm
+   
+   # Reinstall dependencies
+   rm -rf node_modules
+   pnpm install  # or npm install
+   ```
+
+4. **Port Conflicts**
+   ```bash
+   # Check what's using the ports
+   lsof -i :8001
+   lsof -i :3000
+   
+   # Kill processes if needed
+   kill -9 <PID>
+   ```
 
 ## 🔧 Services
 
@@ -224,10 +506,19 @@ The React web interface provides:
 - NVIDIA runtime for GPU acceleration
 - At least 4GB RAM
 
-### Development Machine
+### Development Machine (Docker)
 - Docker with buildx support
 - Node.js for web development (optional)
 - No special hardware required for testing
+
+### Development Machine (Non-Docker)
+- Python 3.10-3.11
+- Poetry (Python dependency management)
+- Node.js 18+ (comes with npm)
+- pnpm (recommended) or npm (fallback)
+- USB camera access (for video input)
+- RealSense camera (optional, for depth data)
+- CUDA toolkit (for GPU acceleration, optional)
 
 ## 📁 Directory Structure
 
@@ -296,7 +587,7 @@ devices/jarvis/
 
 ## 🛠️ Development
 
-### Local Development
+### Local Development (Docker)
 
 ```bash
 # Start development environment
@@ -307,6 +598,39 @@ bash devices/jarvis/scripts/dev.sh
 # - Web dev server on port 3000
 # - Hot reload for both services
 ```
+
+### Local Development (Non-Docker)
+
+**API-Only Development (Recommended when Node.js not available):**
+```bash
+# Terminal 1: API Server
+cd devices/jarvis
+poetry run python -m jarvis.server
+
+# Test API
+curl http://localhost:8001/health
+```
+
+**Full Development (API + Web):**
+```bash
+# Terminal 1: API Server
+cd devices/jarvis
+poetry run python -m jarvis.server
+
+# Terminal 2: Web App (pnpm)
+cd devices/jarvis/web
+pnpm dev
+
+# Terminal 2: Web App (npm alternative)
+cd devices/jarvis/web
+npm run dev
+```
+
+This approach provides:
+- Faster startup times
+- Direct access to logs
+- Easier debugging
+- No Docker overhead
 
 ### Manual Service Management
 
