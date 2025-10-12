@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Jarvis WebSocket Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .status { padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .connected { background-color: #d4edda; color: #155724; }
+        .disconnected { background-color: #f8d7da; color: #721c24; }
+        .data { background-color: #d1ecf1; color: #0c5460; }
+        #log { height: 300px; overflow-y: scroll; border: 1px solid #ccc; padding: 10px; }
+    </style>
+</head>
+<body>
+    <h1>Jarvis WebSocket Test</h1>
+    
+    <div id="status" class="status disconnected">Disconnected</div>
+    
+    <button onclick="connect()">Connect</button>
+    <button onclick="disconnect()">Disconnect</button>
+    <button onclick="ping()">Ping</button>
+    <button onclick="getLatest()">Get Latest</button>
+    <button onclick="clearLog()">Clear Log</button>
+    
+    <h3>Connection Log:</h3>
+    <div id="log"></div>
+    
+    <script>
+        let ws = null;
+        const statusDiv = document.getElementById('status');
+        const logDiv = document.getElementById('log');
+        
+        function log(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            logDiv.innerHTML += `[${timestamp}] ${message}<br>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+        
+        function connect() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                log('Already connected');
+                return;
+            }
+            
+            const url = 'ws://192.168.0.237:8001/ws/center-depth';
+            log(`Connecting to ${url}...`);
+            
+            ws = new WebSocket(url);
+            
+            ws.onopen = function() {
+                statusDiv.textContent = 'Connected';
+                statusDiv.className = 'status connected';
+                log('✅ Connected successfully!');
+            };
+            
+            ws.onmessage = function(event) {
+                try {
+                    const data = JSON.parse(event.data);
+                    if (data.type === 'center_depth') {
+                        log(`📊 Depth: ${data.avg_depth.toFixed(1)}mm (frame ${data.frame_id})`);
+                    } else {
+                        log(`📨 Response: ${event.data}`);
+                    }
+                } catch (e) {
+                    log(`📨 Raw message: ${event.data}`);
+                }
+            };
+            
+            ws.onclose = function(event) {
+                statusDiv.textContent = 'Disconnected';
+                statusDiv.className = 'status disconnected';
+                log(`❌ Connection closed: ${event.code} - ${event.reason}`);
+            };
+            
+            ws.onerror = function(error) {
+                log(`❌ WebSocket error: ${error}`);
+            };
+        }
+        
+        function disconnect() {
+            if (ws) {
+                ws.close();
+                ws = null;
+            }
+        }
+        
+        function ping() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send('ping');
+                log('🏓 Sent ping');
+            } else {
+                log('❌ Not connected');
+            }
+        }
+        
+        function getLatest() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send('get_latest');
+                log('🔄 Requested latest depth data');
+            } else {
+                log('❌ Not connected');
+            }
+        }
+        
+        function clearLog() {
+            logDiv.innerHTML = '';
+        }
+        
+        // Auto-connect on page load
+        window.onload = function() {
+            log('Page loaded. Click Connect to start.');
+        };
+    </script>
+</body>
+</html>

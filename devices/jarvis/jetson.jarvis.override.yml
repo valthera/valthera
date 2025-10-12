@@ -1,0 +1,14 @@
+services:
+  jarvis:
+    privileged: true
+    runtime: nvidia
+    devices:
+      - "/dev/bus/usb:/dev/bus/usb"
+      - "/dev/video0:/dev/video0"
+      - "/dev/video1:/dev/video1"
+      - "/dev/video2:/dev/video2"
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility,video
+    ports:
+      - "8001:8001"

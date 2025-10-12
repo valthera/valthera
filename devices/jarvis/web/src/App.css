@@ -1,0 +1,37 @@
+/* App.css */
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
+
+/* Custom styles */
+.status-indicator {
+  @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+}
+
+.status-connected {
+  @apply bg-green-100 text-green-800;
+}
+
+.status-disconnected {
+  @apply bg-red-100 text-red-800;
+}
+
+.status-connecting {
+  @apply bg-yellow-100 text-yellow-800;
+}
+
+.detection-card {
+  @apply bg-white rounded-lg shadow-sm border p-4;
+}
+
+.video-container {
+  @apply relative bg-gray-900 rounded-lg overflow-hidden;
+}
+
+.detection-overlay {
+  @apply absolute border-2 border-green-400 bg-green-400 bg-opacity-20;
+}
+
+.detection-label {
+  @apply absolute -top-6 left-0 bg-green-400 text-green-900 text-xs px-2 py-1 rounded;
+}
